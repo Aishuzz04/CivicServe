@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineer Dashboard | Municipal Complaint Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Engineer Portal</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('engineer_dashboard') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('engineer_assigned') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> My Assignments
+            </a>
+            <a href="{{ url_for('engineer_inspection') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search-location w-5"></i> Inspections
+            </a>
+            <a href="{{ url_for('engineer_inspection_reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-file-waveform w-5"></i> Inspection Reports
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/40">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Top Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800">Engineer Dashboard</h2>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium text-gray-800">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-gray-500">Field Engineer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl flex items-center justify-between text-sm {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas {% if category == 'error' %}fa-circle-exclamation text-red-500{% elif category == 'success' %}fa-circle-check text-emerald-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                                    <span>{{ message|safe }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Welcome -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ first_name }}! 👋</h2>
+                <p class="text-sm text-gray-500 mt-0.5">Here is an overview of your assigned municipal complaints and field inspections</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <!-- Assigned -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clipboard-list text-blue-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">Assigned</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ assigned_count | default(0) }}</p>
+                    <p class="text-xs text-blue-600 mt-2">Active assignments</p>
+                </div>
+
+                <!-- In Progress / Inspection -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-search text-orange-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">Under Inspection</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ inspection_count | default(0) }}</p>
+                    <p class="text-xs text-orange-500 mt-2">Field inspections</p>
+                </div>
+
+                <!-- Reports Filed -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-file-waveform text-purple-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">Reports Filed</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ reports_count | default(0) }}</p>
+                    <p class="text-xs text-purple-600 mt-2">Saved to DB</p>
+                </div>
+
+                <!-- High Priority -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">High Priority</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ high_priority | default(0) }}</p>
+                    <p class="text-xs text-red-500 mt-2">Needs fast action</p>
+                </div>
+
+                <!-- Completed -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">Completed</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ completed_count | default(0) }}</p>
+                    <p class="text-xs text-green-600 mt-2">Resolved complaints</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions + Work Summary -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <h3 class="font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <a href="{{ url_for('engineer_assigned') }}" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-blue-50 hover:border-blue-200 transition group">
+                            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Assigned Complaints</p>
+                                <p class="text-xs text-gray-500">View all complaints assigned to you</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-300 group-hover:text-blue-500 text-xs"></i>
+                        </a>
+
+                        <a href="{{ url_for('engineer_inspection') }}" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-orange-50 hover:border-orange-200 transition group">
+                            <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-search-location"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Pending Inspections</p>
+                                <p class="text-xs text-gray-500">Check location & record findings</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-300 group-hover:text-orange-500 text-xs"></i>
+                        </a>
+
+                        <a href="{{ url_for('engineer_inspection_reports') }}" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-purple-50 hover:border-purple-200 transition group">
+                            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-file-waveform"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Inspection Reports</p>
+                                <p class="text-xs text-gray-500">Review all submitted technical reports</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-300 group-hover:text-purple-600 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Status Summary -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <h3 class="font-semibold text-gray-800 mb-4">Complaint Lifecycle Breakdown</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="text-center p-4 rounded-xl bg-blue-50 border border-blue-100">
+                            <p class="text-2xl font-bold text-blue-700">{{ assigned_count | default(0) }}</p>
+                            <p class="text-xs font-medium text-blue-600 mt-1">Ready for Inspection</p>
+                        </div>
+                        <div class="text-center p-4 rounded-xl bg-orange-50 border border-orange-100">
+                            <p class="text-2xl font-bold text-orange-600">{{ inspection_count | default(0) }}</p>
+                            <p class="text-xs font-medium text-orange-500 mt-1">Under Inspection</p>
+                        </div>
+                        <div class="text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
+                            <p class="text-2xl font-bold text-purple-600">{{ maintenance_count | default(0) }}</p>
+                            <p class="text-xs font-medium text-purple-500 mt-1">Sent to Maintenance</p>
+                        </div>
+                        <div class="text-center p-4 rounded-xl bg-green-50 border border-green-100">
+                            <p class="text-2xl font-bold text-green-600">{{ completed_count | default(0) }}</p>
+                            <p class="text-xs font-medium text-green-600 mt-1">Work Completed</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 flex items-center justify-between">
+                        <span><i class="fas fa-info-circle text-blue-500 mr-1.5"></i>All reports recorded are instantly forwarded to your Department Head and Maintenance crew.</span>
+                        <a href="{{ url_for('engineer_inspection_reports') }}" class="text-blue-600 font-semibold hover:underline">View All Reports →</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complaint Locations Map -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm shadow-sm">
+                            <i class="fas fa-map-marked-alt text-base"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-base">Assigned Complaint Locations Map</h3>
+                            <p class="text-xs text-gray-500">Geographic map showing your assigned complaints for field inspection</p>
+                        </div>
+                    </div>
+                    <div class="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                        <i class="fas fa-location-dot mr-1 text-red-500"></i><span id="engineerMarkerCount">0</span> Geotagged Locations
+                    </div>
+                </div>
+                <div id="engineerMap" class="w-full h-96 rounded-xl border border-gray-200 shadow-inner z-10"></div>
+            </div>
+
+            <!-- My Recent Assignments Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">My Assigned Complaints</h3>
+                        <p class="text-xs text-gray-500">Only complaints assigned to your engineering account are shown</p>
+                    </div>
+                    <a href="{{ url_for('engineer_assigned') }}" class="text-sm text-blue-600 font-medium hover:underline">View All Assignments →</a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="text-left px-5 py-3 font-medium">Complaint ID</th>
+                                <th class="text-left px-5 py-3 font-medium">Title</th>
+                                <th class="text-left px-5 py-3 font-medium">Category</th>
+                                <th class="text-left px-5 py-3 font-medium">Location</th>
+                                <th class="text-left px-5 py-3 font-medium">Priority</th>
+                                <th class="text-left px-5 py-3 font-medium">Status</th>
+                                <th class="text-left px-5 py-3 font-medium">Assignment Date</th>
+                                <th class="text-center px-5 py-3 font-medium">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% if assignments %}
+                                {% for a in assignments %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-5 py-3.5 font-bold text-gray-800">#{{ a.complaint_id }}</td>
+                                    <td class="px-5 py-3.5 text-gray-800 font-medium">{{ a.title }}</td>
+                                    <td class="px-5 py-3.5">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                            <i class="fas fa-tag mr-1 text-[10px] text-slate-400"></i>{{ a.category or 'General' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-gray-600">
+                                        <span class="inline-flex items-center gap-1">
+                                            <i class="fas fa-location-dot text-red-400 text-xs"></i>
+                                            {{ a.location }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        {% if a.priority == 'High' or a.priority == 'Critical' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">High</span>
+                                        {% elif a.priority == 'Medium' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">Medium</span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        {% if a.status == 'Assigned' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Assigned</span>
+                                        {% elif a.status == 'Inspection' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">Inspection</span>
+                                        {% elif a.status == 'Maintenance' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Maintenance</span>
+                                        {% elif a.status == 'Completed' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Completed</span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{{ a.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-3.5 text-gray-500 font-mono text-xs">{{ a.assigned_date }}</td>
+                                    <td class="px-5 py-3.5 text-center">
+                                        <a href="{{ url_for('engineer_view_complaint', complaint_id=a.complaint_id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition" title="Inspect & Record Findings">
+                                            <i class="fas fa-search-location"></i> Inspect
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="px-5 py-12 text-center text-gray-500">
+                                        <i class="fas fa-clipboard-check text-4xl text-gray-300 mb-3 block"></i>
+                                        <p class="font-semibold text-gray-700">No active assignments assigned to you</p>
+                                        <p class="text-xs text-gray-400 mt-1">Complaints assigned by your Department Head will appear here automatically.</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Inspection Reports Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">Recent Inspection Reports Filed</h3>
+                        <p class="text-xs text-gray-500">Reports saved into the database and shared with supervisors & maintenance</p>
+                    </div>
+                    <a href="{{ url_for('engineer_inspection_reports') }}" class="text-sm text-purple-600 font-medium hover:underline">All Reports ({{ reports_count | default(0) }}) →</a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="text-left px-5 py-3 font-medium">Report #</th>
+                                <th class="text-left px-5 py-3 font-medium">Complaint</th>
+                                <th class="text-left px-5 py-3 font-medium">Category</th>
+                                <th class="text-left px-5 py-3 font-medium">Inspection Date</th>
+                                <th class="text-left px-5 py-3 font-medium">Severity</th>
+                                <th class="text-left px-5 py-3 font-medium">Recommendation</th>
+                                <th class="text-left px-5 py-3 font-medium">Estimated Cost</th>
+                                <th class="text-center px-5 py-3 font-medium">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% if recent_reports %}
+                                {% for r in recent_reports %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-5 py-3.5 font-mono text-xs font-bold text-purple-700">REP-{{ r.report_id }}</td>
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ url_for('engineer_view_complaint', complaint_id=r.complaint_id) }}" class="font-medium text-blue-600 hover:underline">
+                                            #{{ r.complaint_id }} - {{ r.title }}
+                                        </a>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-gray-600">{{ r.category or 'General' }}</td>
+                                    <td class="px-5 py-3.5 text-gray-500 font-mono text-xs">{{ r.inspection_date }}</td>
+                                    <td class="px-5 py-3.5">
+                                        {% if r.severity == 'High' or r.severity == 'Critical' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{{ r.severity }}</span>
+                                        {% elif r.severity == 'Medium' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">Medium</span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">{{ r.severity or 'Low' }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-3.5 text-gray-700 text-xs max-w-xs truncate" title="{{ r.recommendation }}">
+                                        {{ r.recommendation or '—' }}
+                                    </td>
+                                    <td class="px-5 py-3.5 font-mono text-xs text-gray-800">
+                                        {% if r.estimated_cost is not none %}
+                                            ₹{{ "{:,.2f}".format(r.estimated_cost) }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-3.5 text-center">
+                                        <a href="{{ url_for('engineer_view_complaint', complaint_id=r.complaint_id) }}" class="text-blue-600 hover:text-blue-800 text-xs font-semibold" title="View details">
+                                            <i class="fas fa-eye mr-1"></i>Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="px-5 py-10 text-center text-gray-500">
+                                        <i class="fas fa-file-waveform text-4xl text-gray-300 mb-3 block"></i>
+                                        <p class="font-semibold text-gray-700">No inspection reports filed yet</p>
+                                        <p class="text-xs text-gray-400 mt-1">Open any assigned complaint to inspect the location, upload photos, and save findings.</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const assignmentsData = [
+            {% for a in assignments %}
+                {% if a.latitude and a.longitude %}
+                {
+                    id: {{ a.complaint_id }},
+                    title: {{ a.title|tojson }},
+                    category: {{ (a.category or 'General')|tojson }},
+                    location: {{ (a.location or '')|tojson }},
+                    priority: {{ (a.priority or 'Medium')|tojson }},
+                    status: {{ (a.status or 'Assigned')|tojson }},
+                    assigned_date: {{ (a.assigned_date|string)|tojson }},
+                    lat: {{ a.latitude }},
+                    lng: {{ a.longitude }},
+                    inspect_url: "{{ url_for('engineer_view_complaint', complaint_id=a.complaint_id) }}"
+                },
+                {% endif %}
+            {% endfor %}
+        ];
+
+        const markerCountEl = document.getElementById("engineerMarkerCount");
+        if (markerCountEl) {
+            markerCountEl.textContent = assignmentsData.length;
+        }
+
+        const mapEl = document.getElementById("engineerMap");
+        if (!mapEl) return;
+
+        // Default coordinates (Kottayam / Kerala municipal area or first point)
+        const defaultLat = assignmentsData.length > 0 ? assignmentsData[0].lat : 9.828;
+        const defaultLng = assignmentsData.length > 0 ? assignmentsData[0].lng : 76.501;
+
+        const map = L.map("engineerMap").setView([defaultLat, defaultLng], assignmentsData.length > 0 ? 14 : 11);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        const markers = [];
+
+        assignmentsData.forEach(function(item) {
+            const priorityBadge = item.priority === 'High' || item.priority === 'Critical'
+                ? '<span style="background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:11px;">High Priority</span>'
+                : '<span style="background:#fef3c7;color:#b45309;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:11px;">' + item.priority + '</span>';
+
+            const popupHtml = `
+                <div style="font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.4; min-width: 210px;">
+                    <div style="font-weight: bold; color: #1e293b; margin-bottom: 4px; font-size: 13px;">
+                        Complaint #${item.id}: ${item.title}
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                        <span style="background:#e0e7ff;color:#3730a3;padding:2px 6px;border-radius:4px;font-size:11px;margin-right:4px;">${item.category}</span>
+                        ${priorityBadge}
+                    </div>
+                    <div style="color: #64748b; font-size: 12px; margin-bottom: 8px;">
+                        <i class="fas fa-map-pin" style="color:#ef4444;margin-right:4px;"></i>${item.location}
+                    </div>
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; text-align: right;">
+                        <a href="${item.inspect_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:4px 10px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:600;">
+                            Inspect Complaint &rarr;
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            const marker = L.marker([item.lat, item.lng]).addTo(map).bindPopup(popupHtml);
+            markers.push(marker);
+        });
+
+        if (markers.length > 1) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.15));
+        } else if (markers.length === 1) {
+            map.setView([assignmentsData[0].lat, assignmentsData[0].lng], 15);
+        }
+    });
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

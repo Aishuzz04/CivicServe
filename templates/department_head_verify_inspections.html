@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Inspections | Department Head</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+<div class="flex min-h-screen overflow-x-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Department Head</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('department_head_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('department_head_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> Complaints
+            </a>
+            <a href="{{ url_for('department_head_assign_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-tasks w-5"></i> Assign Work
+            </a>
+            <a href="{{ url_for('department_head_verify_inspections') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-clipboard-check w-5"></i> Verify Inspections
+                {% if pending_count > 0 %}
+                <span class="ml-auto bg-amber-400 text-gray-900 font-bold text-xs px-2 py-0.5 rounded-full">{{ pending_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('department_head_engineers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-hard-hat w-5"></i> Engineers
+            </a>
+            <a href="{{ url_for('department_head_field_workers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users-cog w-5"></i> Field Workers
+            </a>
+            <a href="{{ url_for('department_head_reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i> Reports
+            </a>
+            <a href="{{ url_for('department_head_profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+        </nav>
+        <div class="px-4 py-4 border-t border-blue-900/40">
+            <a href="#" class="flex items-center gap-2 text-sm text-blue-200 hover:text-white transition">
+                <i class="fas fa-question-circle"></i>
+                <div><p class="font-medium">Need Help?</p><p class="text-xs text-blue-300">Contact Administrator</p></div>
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="flex-1 lg:ml-64 min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ease-in-out">
+        <!-- Topbar -->
+        <header class="bg-[#0B1C3D] text-white sticky top-0 z-20 shadow-md">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <button onclick="toggleSidebar()" class="p-2 text-white hover:bg-white/10 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="flex items-center gap-2 border-l border-white/20 pl-4">
+                        <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center font-bold text-white shadow">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-blue-200">{{ department_name }} Head</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 rounded-lg text-sm">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+            <!-- Header Banner -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2.5">
+                        <i class="fas fa-clipboard-check text-blue-600"></i>
+                        Technical Inspection Reports Verification
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Review field engineer assessments, authorize recommended maintenance repairs, or request report revisions.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('department_head_assign_complaints') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2">
+                        <i class="fas fa-tasks"></i> Allocate Maintenance Work
+                    </a>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif category == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas {% if category == 'success' %}fa-check-circle text-emerald-500{% elif category == 'info' %}fa-info-circle text-blue-500{% else %}fa-exclamation-circle text-red-500{% endif %} text-base"></i>
+                                    <span>{{ message | safe }}</span>
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-xl border border-amber-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Pending Verification</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ pending_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Awaiting your approval</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Approved Reports</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ approved_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Work authorized</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-blue-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Revision Requested</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ revision_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Returned to engineer</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-reply"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Reports</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ total_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Technical assessments</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-2" id="filterTabs">
+                    <button onclick="setFilter('pending')" id="tab-pending" class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 bg-amber-500 text-white shadow-sm">
+                        <i class="fas fa-hourglass-start"></i> Pending Verification
+                        <span class="bg-white text-amber-700 font-bold text-xs px-2 py-0.5 rounded-full">{{ pending_count }}</span>
+                    </button>
+                    <button onclick="setFilter('approved')" id="tab-approved" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i> Approved
+                        <span class="bg-gray-200 text-gray-700 font-bold text-xs px-2 py-0.5 rounded-full">{{ approved_count }}</span>
+                    </button>
+                    <button onclick="setFilter('revision')" id="tab-revision" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2">
+                        <i class="fas fa-undo-alt"></i> Revision Requested
+                        <span class="bg-gray-200 text-gray-700 font-bold text-xs px-2 py-0.5 rounded-full">{{ revision_count }}</span>
+                    </button>
+                    <button onclick="setFilter('all')" id="tab-all" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2">
+                        <i class="fas fa-list"></i> All Reports
+                        <span class="bg-gray-200 text-gray-700 font-bold text-xs px-2 py-0.5 rounded-full">{{ total_count }}</span>
+                    </button>
+                </div>
+
+                <div class="relative w-full md:w-72">
+                    <i class="fas fa-search absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                    <input type="text" id="reportSearch" onkeyup="filterReports()" placeholder="Search ID, title, engineer..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+            </div>
+
+            <!-- Reports List Container -->
+            <div id="reportsContainer" class="space-y-5">
+                {% if reports %}
+                    {% for r in reports %}
+                    <div class="report-card bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition hover:shadow-md"
+                         data-status="{% if r.status == 'Pending Verification' %}pending{% elif r.status == 'Approved' %}approved{% elif r.status == 'Revision Requested' %}revision{% else %}other{% endif %}"
+                         data-search="#REP-{{ r.report_id }} #C{{ r.complaint_id }} {{ r.title | lower }} {{ r.category | lower }} {{ r.engineer_name | lower }} {{ r.location | lower }}">
+                        
+                        <!-- Card Top Bar -->
+                        <div class="px-6 py-4 bg-gray-50/80 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg font-mono">
+                                    #REP-{{ r.report_id }}
+                                </span>
+                                <span class="px-2.5 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                                    Complaint #{{ r.complaint_id }}
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center gap-1.5">
+                                    <i class="far fa-calendar-alt text-gray-400"></i>
+                                    Inspected: <strong class="text-gray-700">{{ r.inspection_date or r.created_at.strftime('%Y-%m-%d') if r.created_at else '-' }}</strong>
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <!-- Severity Badge -->
+                                {% if r.severity == 'High' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1.5">
+                                        <i class="fas fa-exclamation-circle"></i> High Severity
+                                    </span>
+                                {% elif r.severity == 'Medium' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+                                        <i class="fas fa-exclamation-triangle"></i> Medium Severity
+                                    </span>
+                                {% else %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 flex items-center gap-1.5">
+                                        <i class="fas fa-info-circle"></i> Low Severity
+                                    </span>
+                                {% endif %}
+
+                                <!-- Status Badge -->
+                                {% if r.status == 'Pending Verification' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                        Pending Verification
+                                    </span>
+                                {% elif r.status == 'Approved' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                                        <i class="fas fa-check-circle text-emerald-600"></i> Approved
+                                    </span>
+                                {% elif r.status == 'Revision Requested' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300 flex items-center gap-1.5">
+                                        <i class="fas fa-reply text-blue-600"></i> Revision Requested
+                                    </span>
+                                {% else %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800">
+                                        {{ r.status }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                
+                                <!-- Left Column: Complaint & Inspection Details -->
+                                <div class="lg:col-span-8 space-y-4">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-100">
+                                                {{ r.category }}
+                                            </span>
+                                            <span class="text-xs text-gray-500 flex items-center gap-1">
+                                                <i class="fas fa-map-marker-alt text-red-500"></i> {{ r.location }}
+                                            </span>
+                                        </div>
+                                        <h3 class="text-lg font-bold text-gray-900">{{ r.title }}</h3>
+                                    </div>
+
+                                    <!-- Findings Callout -->
+                                    <div class="bg-slate-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                                            <i class="fas fa-search-plus text-blue-600"></i> Engineer Inspection Findings
+                                        </p>
+                                        <p class="text-sm text-gray-800 whitespace-pre-line leading-relaxed font-normal">
+                                            {{ r.findings }}
+                                        </p>
+                                    </div>
+
+                                    <!-- Recommended Action -->
+                                    <div class="bg-amber-50/60 border border-amber-200/70 p-4 rounded-xl">
+                                        <p class="text-xs font-bold text-amber-800 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                                            <i class="fas fa-tools text-amber-600"></i> Recommended Action
+                                        </p>
+                                        <p class="text-sm text-gray-800 leading-relaxed font-medium">
+                                            {{ r.recommendation or 'No specific recommendation recorded.' }}
+                                        </p>
+                                    </div>
+
+                                    <!-- Materials & Resources -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200/80">
+                                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                                <i class="fas fa-boxes text-gray-600"></i> Required Materials
+                                            </p>
+                                            <p class="text-sm text-gray-800 font-medium">
+                                                {{ r.required_materials or 'None specified' }}
+                                            </p>
+                                        </div>
+
+                                        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200/80">
+                                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                                <i class="fas fa-coins text-gray-600"></i> Estimated Repair Cost
+                                            </p>
+                                            <p class="text-sm text-gray-900 font-bold">
+                                                {% if r.estimated_cost %}
+                                                    ₹{{ r.estimated_cost }}
+                                                {% else %}
+                                                    <span class="text-gray-500 font-normal">Subject to repair assessment</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Revision Remarks (if any) -->
+                                    {% if r.supervisor_remarks %}
+                                    <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-xl text-xs text-blue-900">
+                                        <p class="font-bold mb-1 flex items-center gap-1.5">
+                                            <i class="fas fa-info-circle text-blue-600"></i> Supervisor Revision Remarks:
+                                        </p>
+                                        <p class="font-normal">{{ r.supervisor_remarks }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Right Column: Engineer Info, Evidence Image & Action Controls -->
+                                <div class="lg:col-span-4 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-100 lg:pl-6 pt-4 lg:pt-0 space-y-4">
+                                    <!-- Engineer Badge -->
+                                    <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                                        <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Field Engineer</p>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow">
+                                                <i class="fas fa-hard-hat"></i>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p class="text-sm font-bold text-gray-900 truncate">{{ r.engineer_name }}</p>
+                                                <p class="text-xs text-gray-500 truncate">{{ r.engineer_email }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Evidence Photo -->
+                                    <div>
+                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <i class="fas fa-camera text-gray-400"></i> Inspection Evidence Photo
+                                        </p>
+                                        {% if r.inspection_image %}
+                                        <div class="relative group cursor-pointer overflow-hidden rounded-xl border border-gray-200 aspect-video bg-gray-100 flex items-center justify-center"
+                                             onclick="openImageModal('/{{ r.inspection_image }}')">
+                                            <img src="/{{ r.inspection_image }}"
+                                                 alt="Inspection Evidence"
+                                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                                                <i class="fas fa-search-plus"></i> View Full Image
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <div class="h-28 rounded-xl border border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-gray-400 text-xs">
+                                            <i class="far fa-image text-2xl mb-1 text-gray-300"></i>
+                                            <span>No evidence photo attached</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Authorization Actions -->
+                                    <div class="pt-2">
+                                        {% if r.status == 'Pending Verification' %}
+                                            <div class="space-y-2">
+                                                <!-- Approve Form -->
+                                                <form method="POST" action="{{ url_for('department_head_approve_inspection', report_id=r.report_id) }}" onsubmit="return confirm('Authorize maintenance repair work based on this inspection report?');">
+                                                    <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2">
+                                                        <i class="fas fa-check-circle"></i> Approve & Authorize Work
+                                                    </button>
+                                                </form>
+
+                                                <!-- Request Revision Button -->
+                                                <button type="button"
+                                                        onclick="openRevisionModal({{ r.report_id }}, '{{ r.complaint_id }}', '{{ r.title | replace("'", "\\'") }}')"
+                                                        class="w-full py-2.5 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
+                                                    <i class="fas fa-undo text-amber-500"></i> Request Revision
+                                                </button>
+                                            </div>
+                                        {% elif r.status == 'Approved' %}
+                                            <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-center space-y-2">
+                                                <p class="text-xs font-semibold text-emerald-800 flex items-center justify-center gap-1.5">
+                                                    <i class="fas fa-check-double text-emerald-600"></i> Work Authorized by {{ r.supervisor_name or 'Department Head' }}
+                                                </p>
+                                                <a href="{{ url_for('department_head_assign_complaints') }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 underline">
+                                                    <i class="fas fa-arrow-right"></i> Allocate Maintenance Team
+                                                </a>
+                                            </div>
+                                        {% elif r.status == 'Revision Requested' %}
+                                            <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl text-center">
+                                                <p class="text-xs font-medium text-blue-800 flex items-center justify-center gap-1.5">
+                                                    <i class="fas fa-clock text-blue-600"></i> Awaiting updated findings from engineer
+                                                </p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Empty State -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+                        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800">No Inspection Reports Submitted Yet</h4>
+                        <p class="text-sm text-gray-500 max-w-md mx-auto mt-1">
+                            When field engineers start inspecting assigned complaints and submit their technical findings, reports will appear here for verification and authorization.
+                        </p>
+                        <div class="mt-5">
+                            <a href="{{ url_for('department_head_assign_complaints') }}" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow transition inline-flex items-center gap-2">
+                                <i class="fas fa-user-plus"></i> Assign Complaints to Engineers
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div id="noMatchState" class="hidden bg-white rounded-xl border border-gray-200 p-10 text-center shadow-sm mt-4">
+                <i class="fas fa-search text-3xl text-gray-300 mb-2"></i>
+                <p class="font-semibold text-gray-700 text-sm">No matching inspection reports found</p>
+                <p class="text-xs text-gray-400 mt-1">Try selecting another filter tab or search keyword.</p>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Evidence Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-3xl max-h-[90vh] bg-transparent" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl focus:outline-none">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="modalImage" src="" alt="Inspection Evidence" class="rounded-lg max-h-[85vh] w-auto shadow-2xl object-contain">
+    </div>
+</div>
+
+<!-- Request Revision Modal -->
+<div id="revisionModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-undo text-amber-500"></i> Request Report Revision
+            </h3>
+            <button onclick="closeRevisionModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form id="revisionForm" method="POST" action="">
+            <div class="mb-4">
+                <p class="text-xs text-gray-500 mb-1" id="revisionSubtitle">Returning report to engineer</p>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Supervisor Remarks / Instructions for Revision <span class="text-red-500">*</span>
+                </label>
+                <textarea name="remarks" id="revisionRemarks" rows="4" required
+                          placeholder="Explain what needs re-inspection, clarification, or additional details (e.g. Please verify the exact cable condition and provide cost estimate for lamp replacement)..."
+                          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                <p class="text-xs text-gray-400 mt-1">The engineer will see these remarks in their portal and update the report accordingly.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="closeRevisionModal()" class="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold shadow-sm transition">
+                    Send Revision Request
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentFilter = '{{ "pending" if pending_count > 0 else "all" }}';
+
+function setFilter(filter) {
+    currentFilter = filter;
+    
+    // Update tab styles
+    const tabs = ['pending', 'approved', 'revision', 'all'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (!btn) return;
+        if (t === filter) {
+            btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 bg-blue-600 text-white shadow-sm";
+        } else {
+            btn.className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2";
+        }
+    });
+
+    filterReports();
+}
+
+function filterReports() {
+    const searchVal = document.getElementById('reportSearch').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.report-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        const cardSearch = card.getAttribute('data-search') || '';
+
+        const statusMatch = (currentFilter === 'all') || (cardStatus === currentFilter);
+        const searchMatch = !searchVal || cardSearch.includes(searchVal);
+
+        if (statusMatch && searchMatch) {
+            card.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    const noMatch = document.getElementById('noMatchState');
+    if (noMatch) {
+        if (visibleCount === 0 && cards.length > 0) {
+            noMatch.classList.remove('hidden');
+        } else {
+            noMatch.classList.add('hidden');
+        }
+    }
+}
+
+function openImageModal(imgUrl) {
+    const modal = document.getElementById('imageModal');
+    const img = document.getElementById('modalImage');
+    img.src = imgUrl;
+    modal.classList.remove('hidden');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+}
+
+function openRevisionModal(reportId, complaintId, complaintTitle) {
+    const modal = document.getElementById('revisionModal');
+    const form = document.getElementById('revisionForm');
+    const subtitle = document.getElementById('revisionSubtitle');
+    
+    form.action = "/department-head/inspection-report/request-revision/" + reportId;
+    subtitle.textContent = "Report #REP-" + reportId + " · Complaint #" + complaintId + ": " + complaintTitle;
+    document.getElementById('revisionRemarks').value = '';
+    modal.classList.remove('hidden');
+}
+
+function closeRevisionModal() {
+    document.getElementById('revisionModal').classList.add('hidden');
+}
+
+// Initial filter setup
+document.addEventListener('DOMContentLoaded', () => {
+    setFilter(currentFilter);
+});
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

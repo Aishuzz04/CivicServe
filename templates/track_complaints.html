@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Complaints | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #1E40AF; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.1); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+<div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0A1F3D] text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Citizen Portal</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="{{ url_for('citizen_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('register_complaint') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-edit w-5"></i> Register Complaint
+            </a>
+            <a href="{{ url_for('track_complaints') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-search w-5"></i> Track Complaints
+            </a>
+            <a href="{{ url_for('profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-comment-dots w-5"></i> Feedback
+            </a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 mt-6">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+
+                <!-- Left side -->
+                <div class="flex items-center gap-3">
+                    <!-- Mobile / Desktop menu button -->
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <!-- Back Button -->
+                    <button
+                        type="button"
+                        onclick="goBack()"
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="hidden sm:inline">Back</span>
+                    </button>
+
+                    <!-- Home Button -->
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden sm:inline">Home</span>
+                    </a>
+                </div>
+
+                <!-- Right side (Notifications + User info) -->
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('notifications') }}"
+                       class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                       title="Notifications">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                    </a>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ first_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="p-4 sm:p-6 lg:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Track Your Complaints</h2>
+
+            <!-- Search / Filter -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col sm:flex-row gap-3">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search by Complaint ID or Location..."
+                        class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                    <select
+                        id="statusFilter"
+                        class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Under Verification">Under Verification</option>
+                        <option value="Verified">Verified</option>
+                        <option value="Assigned">Assigned</option>
+                        <option value="Inspection">Inspection</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+
+                    <button
+                        type="button"
+                        onclick="filterComplaints()"
+                        class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </button>
+                </div>
+
+            <!-- Complaints Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-600">
+                            <tr>
+                                <th class="text-left px-5 py-3 font-medium">Complaint ID</th>
+                                <th class="text-left px-5 py-3 font-medium">Category</th>
+                                <th class="text-left px-5 py-3 font-medium">Location</th>
+                                <th class="text-left px-5 py-3 font-medium">Status</th>
+                                <th class="text-left px-5 py-3 font-medium">Date</th>
+                                <th class="text-left px-5 py-3 font-medium">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaintsTableBody" class="divide-y divide-gray-100">
+
+                            {% if complaints %}
+
+                                {% for complaint in complaints %}
+
+                                <tr class="hover:bg-gray-50">
+
+                                    <td class="px-5 py-3.5 font-medium text-gray-800">
+                                        #{{ complaint.complaint_id }}
+                                    </td>
+
+                                    <td class="px-5 py-3.5 text-gray-600">
+                                        {{ complaint.category }}
+                                    </td>
+
+                                    <td class="px-5 py-3.5 text-gray-600">
+                                        {{ complaint.location }}
+                                    </td>
+
+                                    <td class="px-5 py-3.5">
+
+                                        {% if complaint.is_duplicate %}
+
+                                            <div class="flex flex-col gap-1 items-start">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                                    <i class="fas fa-link text-[10px]"></i> Duplicate (Linked)
+                                                </span>
+                                                <span class="text-[11px] text-gray-500 font-medium">
+                                                    Main Ticket #{{ complaint.parent_complaint_id }} ({{ complaint.parent_status or 'Active' }})
+                                                </span>
+                                            </div>
+
+                                        {% elif complaint.status == "Pending" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700">
+                                                Pending
+                                            </span>
+
+                                        {% elif complaint.status == "Under Verification" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                                Under Verification
+                                            </span>
+
+                                        {% elif complaint.status == "Verified" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                                Verified
+                                            </span>
+
+                                        {% elif complaint.status == "Assigned" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                Assigned
+                                            </span>
+
+                                        {% elif complaint.status == "Inspection" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                                Inspection
+                                            </span>
+
+                                        {% elif complaint.status == "Maintenance" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                                Maintenance
+                                            </span>
+
+                                        {% elif complaint.status == "Completed" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                Completed
+                                            </span>
+
+                                        {% elif complaint.status == "Rejected" %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                                Rejected
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                                {{ complaint.status }}
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td class="px-5 py-3.5 text-gray-500">
+                                        {{ complaint.created_at.strftime('%d-%m-%Y') if complaint.created_at else '-' }}
+                                    </td>
+
+                                    <td class="px-5 py-3.5">
+                                        <button
+                                            type="button"
+                                            onclick="showComplaintDetails(
+                                                '{{ complaint.complaint_id }}',
+                                                '{{ complaint.title|e }}',
+                                                '{{ complaint.category|e }}',
+                                                '{{ complaint.location|e }}',
+                                                '{{ complaint.priority|e }}',
+                                                '{{ complaint.status|e }}',
+                                                '{{ complaint.department_name|e if complaint.department_name else "Not assigned yet" }}',
+                                                '{{ complaint.description|e }}',
+                                                {{ 'true' if complaint.is_duplicate else 'false' }},
+                                                '{{ complaint.parent_complaint_id or "" }}',
+                                                '{{ complaint.parent_title|e if complaint.parent_title else "" }}',
+                                                '{{ complaint.parent_status|e if complaint.parent_status else "" }}'
+                                            )"
+                                            class="text-blue-600 hover:text-blue-800">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="px-5 py-10 text-center text-gray-500">
+                                        <div class="flex flex-col items-center">
+                                            <i class="fas fa-clipboard-list text-3xl text-gray-300 mb-3"></i>
+                                            <p class="font-medium">
+                                                No complaints found.
+                                            </p>
+                                            <p class="text-sm mt-1">
+                                                Your registered complaints will appear here.
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<!-- Complaint Details Modal -->
+<div id="complaintModal"
+     class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center px-4">
+
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b">
+
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Complaint Details
+                </h3>
+
+                <p id="modalComplaintId"
+                   class="text-sm text-gray-500 mt-1">
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="closeComplaintModal()"
+                class="text-gray-400 hover:text-gray-600 text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+
+        </div>
+
+        <!-- Modal Content -->
+        <div class="px-6 py-5 space-y-4 max-h-[75vh] overflow-y-auto">
+
+            <!-- Duplicate / Linked Banner -->
+            <div id="modalDuplicateBanner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+                <div class="flex items-start gap-2.5">
+                    <i class="fas fa-link text-amber-600 mt-0.5 text-sm flex-shrink-0"></i>
+                    <div>
+                        <p class="font-bold text-amber-900">Linked to Main Complaint #<span id="modalParentId"></span></p>
+                        <p class="mt-0.5 text-amber-800 leading-relaxed">
+                            This report has been identified and confirmed as matching active complaint #<span id="modalParentId2"></span> ("<span id="modalParentTitle"></span>"). Municipal field action is coordinated under the main ticket, and your ticket will automatically update upon resolution.
+                        </p>
+                        <p class="mt-1.5 font-semibold text-amber-900">Main Ticket Progress: <span id="modalParentStatus" class="underline"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Title</p>
+                <p id="modalTitle" class="font-medium text-gray-800"></p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Category</p>
+                <p id="modalCategory" class="text-gray-700"></p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Location</p>
+                <p id="modalLocation" class="text-gray-700"></p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Priority</p>
+                <p id="modalPriority" class="text-gray-700"></p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Status</p>
+                <p id="modalStatus" class="font-medium text-blue-600"></p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Department</p>
+                <p id="modalDepartment" class="text-gray-700"></p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500">Description</p>
+                <p id="modalDescription"
+                   class="text-gray-700 leading-relaxed"></p>
+            </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t bg-gray-50 text-right">
+
+            <button
+                type="button"
+                onclick="closeComplaintModal()"
+                class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
+                Close
+            </button>
+
+        </div>
+
+    </div>
+</div>
+<script>
+function showComplaintDetails(
+    complaintId,
+    title,
+    category,
+    location,
+    priority,
+    status,
+    department,
+    description,
+    isDuplicate,
+    parentId,
+    parentTitle,
+    parentStatus
+) {
+    document.getElementById("modalComplaintId").textContent =
+        "Complaint #" + complaintId;
+
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalCategory").textContent = category;
+    document.getElementById("modalLocation").textContent = location;
+    document.getElementById("modalPriority").textContent = priority;
+    document.getElementById("modalStatus").textContent = status;
+    document.getElementById("modalDepartment").textContent = department;
+    document.getElementById("modalDescription").textContent = description;
+
+    const dupBanner = document.getElementById("modalDuplicateBanner");
+    if (isDuplicate && parentId) {
+        dupBanner.classList.remove("hidden");
+        document.getElementById("modalParentId").textContent = parentId;
+        document.getElementById("modalParentId2").textContent = parentId;
+        document.getElementById("modalParentTitle").textContent = parentTitle || "Related Complaint";
+        document.getElementById("modalParentStatus").textContent = parentStatus || "In Progress";
+    } else {
+        dupBanner.classList.add("hidden");
+    }
+
+    document.getElementById("complaintModal").classList.remove("hidden");
+}
+
+function closeComplaintModal() {
+    document.getElementById("complaintModal").classList.add("hidden");
+}
+
+function goBack() {
+    if (document.referrer) {
+        window.history.back();
+    } else {
+        window.location.href = "{{ url_for('citizen_dashboard') }}";
+    }
+}
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+
+function filterComplaints() {
+    const searchText = document.getElementById("searchInput").value.toLowerCase().trim();
+    const selectedStatus = document.getElementById("statusFilter").value.toLowerCase();
+
+    const rows = document.querySelectorAll("#complaintsTableBody tr");
+
+    rows.forEach(row => {
+        // Ignore the "No complaints found" row
+        if (row.cells.length < 6) {
+            return;
+        }
+
+        const complaintId = row.cells[0].textContent.toLowerCase();
+        const location = row.cells[2].textContent.toLowerCase();
+        const status = row.cells[3].textContent.toLowerCase();
+
+        const matchesSearch =
+            complaintId.includes(searchText) ||
+            location.includes(searchText);
+
+        const matchesStatus =
+            selectedStatus === "" ||
+            status.includes(selectedStatus);
+
+        if (matchesSearch && matchesStatus) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+document.getElementById("searchInput").addEventListener("keyup", function(event) {
+    if (event.key === "Enter") {
+        filterComplaints();
+    }
+});
+
+document.getElementById("statusFilter").addEventListener("change", function() {
+    filterComplaints();
+});
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

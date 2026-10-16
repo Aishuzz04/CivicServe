@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrator Dashboard | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== ORIGINAL SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Administrator Panel</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> Complaints
+            </a>
+            <a href="{{ url_for('verify_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-check-circle w-5"></i> Verify Complaints
+            </a>
+            <a href="{{ url_for('departments') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-building w-5"></i> Departments
+            </a>
+            <a href="{{ url_for('admin_department_heads') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user-tie w-5"></i> Department Heads
+            </a>
+            <a href="{{ url_for('reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i> Reports
+            </a>
+            <a href="{{ url_for('users') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users w-5"></i> Users
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/50">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay -->
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Dashboard Overview</h2>
+                        <p class="text-sm text-gray-500">Welcome back! Here's what's happening in your system.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-clipboard-list text-blue-600"></i>
+                    </div>
+                    <p class="text-sm text-gray-500">Total Complaints</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ total_complaints }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Current system count</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                    </div>
+                    <p class="text-sm text-gray-500">Pending</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ pending_complaints }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Awaiting verification/action</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-user-plus text-indigo-600"></i>
+                    </div>
+                    <p class="text-sm text-gray-500">Assigned / In Progress</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ assigned_complaints }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Active engineering work</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <p class="text-sm text-gray-500">Resolved</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ resolved_complaints }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Completed issues</p>
+                </div>
+            </div>
+
+            <!-- Executive System Health & Capacity Ribbon -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <a href="{{ url_for('users') }}" class="bg-gradient-to-br from-blue-50 to-indigo-50/50 p-4 rounded-xl border border-blue-100 hover:shadow-sm transition flex items-center justify-between group">
+                    <div>
+                        <span class="text-xs font-semibold text-blue-700 uppercase tracking-wider block">Registered Accounts</span>
+                        <div class="text-2xl font-bold text-gray-800 mt-0.5">{{ total_users }}</div>
+                        <span class="text-xs text-blue-600 group-hover:underline">Citizens & Staff Directory →</span>
+                    </div>
+                    <div class="w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('departments') }}" class="bg-gradient-to-br from-teal-50 to-emerald-50/50 p-4 rounded-xl border border-teal-100 hover:shadow-sm transition flex items-center justify-between group">
+                    <div>
+                        <span class="text-xs font-semibold text-teal-700 uppercase tracking-wider block">Municipal Departments</span>
+                        <div class="text-2xl font-bold text-gray-800 mt-0.5">{{ total_departments }}</div>
+                        <span class="text-xs text-teal-600 group-hover:underline">Active municipal units →</span>
+                    </div>
+                    <div class="w-11 h-11 bg-teal-600 text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
+                        <i class="fas fa-building"></i>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('verify_complaints') }}" class="bg-gradient-to-br from-amber-50 to-yellow-50/50 p-4 rounded-xl border border-amber-100 hover:shadow-sm transition flex items-center justify-between group">
+                    <div>
+                        <span class="text-xs font-semibold text-amber-700 uppercase tracking-wider block">Duplicate / Review Queue</span>
+                        <div class="text-2xl font-bold text-gray-800 mt-0.5">{{ pending_verifications }}</div>
+                        <span class="text-xs text-amber-600 group-hover:underline">Needs admin verification →</span>
+                    </div>
+                    <div class="w-11 h-11 bg-amber-500 text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                </a>
+
+                <div class="bg-gradient-to-br from-emerald-50 to-green-50/50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                    <div class="w-full mr-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-emerald-700 uppercase tracking-wider block">Resolution Rate</span>
+                            <span class="text-xs font-bold text-emerald-800">{{ resolution_rate }}%</span>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-800 mt-0.5">{{ resolution_rate }}%</div>
+                        <div class="w-full bg-emerald-200/60 rounded-full h-1.5 mt-2 overflow-hidden">
+                            <div class="bg-emerald-600 h-1.5 rounded-full" style="width: {{ resolution_rate }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="w-11 h-11 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== GRAPHS ===================== -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+                <!-- Status Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-800">Complaints by Status</h3>
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">Real-time breakdown</span>
+                    </div>
+                    <div class="relative h-64">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Category Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-800">Complaints by Category</h3>
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">Volume distribution</span>
+                    </div>
+                    <div class="relative h-64">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== OPERATIONS HUB: RECENT COMPLAINTS & DEPARTMENT OVERVIEW ===================== -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+                <!-- Recent Complaints (2 cols) -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fas fa-clipboard-list text-blue-600"></i>
+                                <h3 class="font-semibold text-gray-800">Recent Complaints</h3>
+                            </div>
+                            <a href="{{ url_for('admin_complaints') }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1">
+                                View All ({{ total_complaints }}) <i class="fas fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50/80 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
+                                    <tr>
+                                        <th class="text-left px-5 py-3">ID</th>
+                                        <th class="text-left px-5 py-3">Category</th>
+                                        <th class="text-left px-5 py-3">Location</th>
+                                        <th class="text-left px-5 py-3">Status</th>
+                                        <th class="text-left px-5 py-3">Date</th>
+                                        <th class="text-right px-5 py-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                {% for complaint in recent_complaints %}
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <!-- ID -->
+                                    <td class="px-5 py-3.5 font-bold text-gray-800 font-mono text-xs">#{{ complaint[0] }}</td>
+                                    <!-- Category -->
+                                    <td class="px-5 py-3.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                                                {% if 'light' in complaint[2]|lower %}<i class="fas fa-lightbulb"></i>
+                                                {% elif 'road' in complaint[2]|lower %}<i class="fas fa-road"></i>
+                                                {% elif 'water' in complaint[2]|lower %}<i class="fas fa-faucet"></i>
+                                                {% elif 'drain' in complaint[2]|lower %}<i class="fas fa-water"></i>
+                                                {% elif 'waste' in complaint[2]|lower or 'garb' in complaint[2]|lower %}<i class="fas fa-trash"></i>
+                                                {% else %}<i class="fas fa-tools"></i>{% endif %}
+                                            </span>
+                                            <span class="font-medium text-gray-800 text-xs">{{ complaint[2] }}</span>
+                                        </div>
+                                    </td>
+                                    <!-- Location -->
+                                    <td class="px-5 py-3.5 text-xs text-gray-600 max-w-[150px] truncate" title="{{ complaint[3] }}">
+                                        <i class="fas fa-map-marker-alt text-red-500 mr-1 text-[10px]"></i> {{ complaint[3] }}
+                                    </td>
+                                    <!-- Status -->
+                                    <td class="px-5 py-3.5">
+                                        {% if complaint[4] == 'Pending' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                                Pending
+                                            </span>
+                                        {% elif complaint[4] in ['Assigned', 'Inspection'] %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                                                {{ complaint[4] }}
+                                            </span>
+                                        {% elif complaint[4] == 'Maintenance' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                                                Maintenance
+                                            </span>
+                                        {% elif complaint[4] in ['Completed', 'Closed'] %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                {{ complaint[4] }}
+                                            </span>
+                                        {% elif complaint[4] == 'Rejected' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                                                Rejected
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                                {{ complaint[4] }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <!-- Date -->
+                                    <td class="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
+                                        {{ complaint[6].strftime('%d %b %Y') if complaint[6] else '—' }}
+                                    </td>
+                                    <!-- Action -->
+                                    <td class="px-5 py-3.5 text-right">
+                                        <a href="{{ url_for('admin_complaints') }}"
+                                           class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 rounded-md transition"
+                                           title="Manage complaints">
+                                            <i class="fas fa-eye text-[11px]"></i>
+                                            <span>View</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="px-5 py-8 text-center text-gray-500 text-xs">
+                                        No recent complaints recorded.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="px-5 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-gray-500">
+                        <span>Showing {{ recent_complaints|length }} latest complaints</span>
+                        <a href="{{ url_for('admin_complaints') }}" class="text-blue-600 hover:underline font-medium">Manage all complaints →</a>
+                    </div>
+                </div>
+
+                <!-- Department Overview Widget (1 col) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-building text-teal-600"></i>
+                                <h3 class="font-semibold text-gray-800 text-sm">Department Overview</h3>
+                            </div>
+                            <a href="{{ url_for('departments') }}" class="text-xs text-teal-600 hover:underline font-medium">Manage →</a>
+                        </div>
+
+                        <div class="space-y-3.5">
+                            {% for dept in department_overview %}
+                            <div class="p-3 rounded-lg border border-gray-100 hover:border-gray-200 bg-gray-50/40 transition">
+                                <div class="flex items-center justify-between">
+                                    <div class="font-semibold text-gray-800 text-xs flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full {% if dept.active > 0 %}bg-amber-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+                                        {{ dept.name }}
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-bold {% if dept.active > 0 %}bg-amber-100 text-amber-800{% else %}bg-gray-100 text-gray-600{% endif %}" title="Active Cases">
+                                            {{ dept.active }} active
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700" title="Total Complaints">
+                                            {{ dept.total }} total
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between text-[11px] text-gray-500">
+                                    <span class="flex items-center gap-1">
+                                        <i class="fas fa-user-tie text-[10px] text-gray-400"></i>
+                                        {% if dept.head_name %}
+                                            <span class="font-medium text-gray-700">{{ dept.head_name }}</span>
+                                        {% else %}
+                                            <span class="text-amber-600 italic">Unassigned</span>
+                                        {% endif %}
+                                    </span>
+                                    <span>{{ dept.resolved }} resolved</span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-xs text-gray-400 py-6 text-center">
+                                No department data available.
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-gray-100">
+                        <a href="{{ url_for('admin_department_heads') }}" class="w-full py-2 px-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-2 border border-gray-200">
+                            <i class="fas fa-user-gear text-gray-500"></i>
+                            <span>Assign & Manage Department Heads</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="mb-4">
+                <h3 class="font-semibold text-gray-800 mb-4">Quick Administrative Actions</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <a href="{{ url_for('verify_complaints') }}" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition flex items-start gap-3 group">
+                        <div class="w-10 h-10 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white rounded-xl flex items-center justify-center transition flex-shrink-0 text-blue-600">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 text-sm">Verify Complaint</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Review submissions</p>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_department_heads') }}" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition flex items-start gap-3 group">
+                        <div class="w-10 h-10 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white rounded-xl flex items-center justify-center transition flex-shrink-0 text-indigo-600">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 text-sm">Department Heads</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Manage leadership</p>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('departments') }}" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition flex items-start gap-3 group">
+                        <div class="w-10 h-10 bg-amber-50 group-hover:bg-amber-600 group-hover:text-white rounded-xl flex items-center justify-center transition flex-shrink-0 text-amber-600">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 text-sm">Departments</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Configure divisions</p>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('users') }}" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition flex items-start gap-3 group">
+                        <div class="w-10 h-10 bg-purple-50 group-hover:bg-purple-600 group-hover:text-white rounded-xl flex items-center justify-center transition flex-shrink-0 text-purple-600">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 text-sm">Users Directory</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Staff & citizen accounts</p>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('reports') }}" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition flex items-start gap-3 group">
+                        <div class="w-10 h-10 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white rounded-xl flex items-center justify-center transition flex-shrink-0 text-emerald-600">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 text-sm">Analytics Reports</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Export insights</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ===================== CHART INITIALIZATION SCRIPTS ===================== -->
+<script>
+    // 1. Complaints by Status Chart (Doughnut)
+    const statusLabels = {{ status_labels | tojson }};
+    const statusData = {{ status_data | tojson }};
+
+    const statusColorMap = {
+        'Pending': '#F59E0B',
+        'Under Verification': '#F97316',
+        'Assigned': '#06B6D4',
+        'Inspection': '#3B82F6',
+        'In Progress': '#6366F1',
+        'Maintenance': '#8B5CF6',
+        'Verified': '#10B981',
+        'Completed': '#059669',
+        'Closed': '#047857',
+        'Rejected': '#EF4444'
+    };
+
+    const statusBackgrounds = statusLabels.map(l => statusColorMap[l] || '#9CA3AF');
+
+    const ctxStatus = document.getElementById('statusChart');
+    if (ctxStatus) {
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusBackgrounds,
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 12,
+                            font: { family: 'Inter', size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const val = context.raw || 0;
+                                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                                return ` ${context.label}: ${val} (${pct}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+
+    // 2. Complaints by Category Chart (Bar)
+    const categoryLabels = {{ category_labels | tojson }};
+    const categoryData = {{ category_data | tojson }};
+
+    const categoryPalette = [
+        '#2563EB', '#0D9488', '#0284C7', '#7C3AED', '#D97706', '#059669', '#E11D48', '#4B5563'
+    ];
+
+    const ctxCategory = document.getElementById('categoryChart');
+    if (ctxCategory) {
+        new Chart(ctxCategory, {
+            type: 'bar',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    label: 'Total Complaints',
+                    data: categoryData,
+                    backgroundColor: categoryLabels.map((_, i) => categoryPalette[i % categoryPalette.length]),
+                    borderRadius: 6,
+                    maxBarThickness: 36
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` Complaints: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            font: { family: 'Inter', size: 11 }
+                        },
+                        grid: {
+                            color: '#F3F4F6'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { family: 'Inter', size: 11 }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

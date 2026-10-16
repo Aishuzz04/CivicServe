@@ -1,0 +1,33 @@
+/* ==========================================================================
+   CivicServe Global Layout & Sliding Sidebar Helpers
+   ========================================================================== */
+
+/* Prevent horizontal page scrolling */
+html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+}
+
+#mainContent {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease !important;
+}
+
+/* Desktop: When hidden, slide completely out to the left */
+@media (min-width: 1024px) {
+    #sidebar.sidebar-hidden {
+        transform: translateX(-100%) !important;
+    }
+    #mainContent.content-expanded {
+        margin-left: 0 !important;
+    }
+}
+
+/* Mobile: When shown via toggle, slide into view */
+@media (max-width: 1023px) {
+    #sidebar.sidebar-mobile-show {
+        transform: translateX(0) !important;
+    }
+}

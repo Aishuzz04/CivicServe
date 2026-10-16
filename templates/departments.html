@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Departments | Administrator Panel</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .sidebar-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.08);
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+
+<body class="bg-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- ================================================= -->
+    <!-- SIDEBAR -->
+    <!-- ================================================= -->
+
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white
+                  flex flex-col h-screen transform -translate-x-full
+                  lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Administrator Panel</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+            <a href="{{ url_for('admin_dashboard') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100">
+
+                <i class="fas fa-home w-5"></i>
+                Dashboard
+
+            </a>
+
+
+            <a href="{{ url_for('admin_complaints') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100">
+
+                <i class="fas fa-clipboard-list w-5"></i>
+                Complaints
+
+            </a>
+
+
+            <a href="{{ url_for('verify_complaints') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100">
+
+                <i class="fas fa-check-circle w-5"></i>
+                Verify Complaints
+
+            </a>
+
+
+            <!-- ACTIVE -->
+            <a href="{{ url_for('departments') }}"
+               class="sidebar-link active flex items-center gap-3 px-4 py-3
+                      rounded-lg text-sm font-medium">
+
+                <i class="fas fa-building w-5"></i>
+                Departments
+
+            </a>
+
+            <a href="{{ url_for('admin_department_heads') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100">
+
+                <i class="fas fa-user-tie w-5"></i>
+                Department Heads
+
+            </a>
+
+
+            <a href="{{ url_for('reports') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100">
+
+                <i class="fas fa-chart-bar w-5"></i>
+                Reports
+
+            </a>
+
+
+            <a href="{{ url_for('users') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100">
+
+                <i class="fas fa-users w-5"></i>
+                Users
+
+            </a>
+
+
+        </nav>
+
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/50">
+
+            <a href="{{ url_for('logout') }}"
+               class="flex items-center gap-3 px-4 py-3 rounded-lg
+                      text-sm font-medium text-blue-100
+                      hover:bg-red-500/20 hover:text-red-300 transition">
+
+                <i class="fas fa-sign-out-alt w-5"></i>
+                Logout
+
+            </a>
+
+        </div>
+
+    </aside>
+
+
+    <!-- Mobile overlay -->
+    <div id="overlay"
+         class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"
+         onclick="toggleSidebar()">
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- MAIN CONTENT -->
+    <!-- ================================================= -->
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+
+            <div class="flex items-center justify-between
+                        px-4 sm:px-6 py-4">
+
+                <div class="flex items-center gap-3">
+
+                    <button onclick="toggleSidebar()"
+                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+
+                        <i class="fas fa-bars"></i>
+
+                    </button>
+
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Departments
+                    </h2>
+
+                </div>
+
+
+                <div class="flex items-center gap-3">
+
+                    <div class="w-9 h-9 bg-blue-100 rounded-full
+                                flex items-center justify-center">
+
+                        <i class="fas fa-user text-blue-600"></i>
+
+                    </div>
+
+                    <span class="text-sm font-medium text-gray-700 hidden sm:block">
+                        Admin
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- ================================================= -->
+        <!-- PAGE -->
+        <!-- ================================================= -->
+
+        <main class="p-4 sm:p-6 lg:p-8">
+            <!-- ================= FLASH MESSAGES ================= -->
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+
+                {% if messages %}
+
+                    <div class="space-y-3 mb-6">
+
+                        {% for category, message in messages %}
+
+                            {% if category == "success" %}
+
+                                <div class="flex items-center gap-3 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+
+                                    <i class="fas fa-check-circle text-lg"></i>
+
+                                    <p class="text-sm font-medium">
+                                        {{ message }}
+                                    </p>
+
+                                </div>
+
+                            {% else %}
+
+                                <div class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+
+                                    <i class="fas fa-exclamation-circle text-lg"></i>
+
+                                    <p class="text-sm font-medium">
+                                        {{ message }}
+                                    </p>
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            {% endwith %}
+
+            <!-- Title -->
+            <div class="flex flex-col sm:flex-row
+                        sm:items-center justify-between
+                        gap-4 mb-6">
+
+                <div>
+
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Departments
+                    </h2>
+
+                    <p class="text-sm text-gray-500 mt-1">
+                        Manage infrastructure departments
+                    </p>
+
+                </div>
+
+
+                <a href="{{ url_for('add_department') }}"
+                   class="inline-flex items-center justify-center
+                          gap-2 px-4 py-2.5
+                          bg-blue-600 hover:bg-blue-700
+                          text-white text-sm font-medium
+                          rounded-lg transition">
+
+                    <i class="fas fa-plus"></i>
+
+                    Add Department
+
+                </a>
+
+            </div>
+
+
+            <!-- ================================================= -->
+            <!-- FLASH / MESSAGE -->
+            <!-- ================================================= -->
+
+            {% if message %}
+
+            <div class="mb-6 bg-green-50 border border-green-200
+                        text-green-700 px-4 py-3 rounded-lg">
+
+                <i class="fas fa-check-circle mr-2"></i>
+
+                {{ message }}
+
+            </div>
+
+            {% endif %}
+
+
+            {% if error %}
+
+            <div class="mb-6 bg-red-50 border border-red-200
+                        text-red-700 px-4 py-3 rounded-lg">
+
+                <i class="fas fa-exclamation-circle mr-2"></i>
+
+                {{ error }}
+
+            </div>
+
+            {% endif %}
+
+
+            <!-- ================================================= -->
+            <!-- DEPARTMENT CARDS -->
+            <!-- ================================================= -->
+
+            {% if departments %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                {% for department in departments %}
+
+                <div class="bg-white rounded-xl shadow-sm
+                            border border-gray-100 p-5
+                            hover:shadow-md transition">
+
+                    <!-- Top -->
+                    <div class="flex items-start justify-between mb-4">
+
+                        <div class="w-12 h-12 bg-blue-100
+                                    rounded-xl flex items-center justify-center">
+
+                            <i class="fas fa-building
+                                      text-blue-600 text-xl"></i>
+
+                        </div>
+
+
+                        <!-- Actions -->
+                        <div class="flex gap-3">
+
+                            <!-- Edit -->
+                            <a href="{{ url_for(
+                                'edit_department',
+                                department_id=department.department_id
+                            ) }}"
+                               class="text-gray-400
+                                      hover:text-blue-600"
+                               title="Edit Department">
+
+                                <i class="fas fa-edit"></i>
+
+                            </a>
+
+
+                            <!-- Delete -->
+                            <form method="POST"
+                                  action="{{ url_for('delete_department', department_id=department.department_id) }}"
+                                  class="delete-form">
+                                <button type="button"
+                                        onclick="showDeleteModal(this)"
+                                        class="text-gray-400 hover:text-red-500 transition"
+                                        title="Delete Department">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+
+                    <!-- Department name -->
+                    <h3 class="font-semibold text-gray-800 text-lg">
+
+                        {{ department.department_name }}
+
+                    </h3>
+                    <div class="mt-2">
+                        {% if department.is_active %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                Active
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                                <span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                                Disabled
+                            </span>
+                        {% endif %}
+                    </div>
+
+
+                    <!-- Description -->
+                    <p class="text-sm text-gray-500 mt-1">
+
+                        {{ department.description
+                           if department.description
+                           else "No description available." }}
+
+                    </p>
+
+
+                    <!-- Statistics -->
+                    <div class="flex items-center gap-4
+                                mt-4 pt-4
+                                border-t border-gray-100">
+
+                        <div class="text-sm">
+
+                            <span class="font-medium text-gray-800">
+                                {{ department.complaint_count }}
+                            </span>
+
+                            <span class="text-gray-500">
+                                Complaints
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Enable / Disable -->
+                    <div class="mt-4">
+
+                        <form method="POST"
+                              action="{{ url_for(
+                                  'toggle_department',
+                                  department_id=department.department_id
+                              ) }}">
+
+                            {% if department.is_active %}
+
+                                <button type="submit"
+                                        class="w-full px-4 py-2.5
+                                               bg-yellow-50 hover:bg-yellow-100
+                                               text-yellow-700
+                                               border border-yellow-200
+                                               rounded-lg
+                                               text-sm font-medium
+                                               transition">
+
+                                    <i class="fas fa-ban mr-2"></i>
+                                    Disable Department
+
+                                </button>
+
+                            {% else %}
+
+                                <button type="submit"
+                                        class="w-full px-4 py-2.5
+                                               bg-green-50 hover:bg-green-100
+                                               text-green-700
+                                               border border-green-200
+                                               rounded-lg
+                                               text-sm font-medium
+                                               transition">
+                                    <i class="fas fa-check mr-2"></i>
+                                    Enable Department
+                                </button>
+                            {% endif %}
+                        </form>
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            {% else %}
+
+            <!-- No departments -->
+            <div class="bg-white rounded-xl shadow-sm
+                        border border-gray-100
+                        p-10 text-center">
+
+                <div class="w-16 h-16 bg-gray-100
+                            rounded-full flex items-center
+                            justify-center mx-auto mb-4">
+
+                    <i class="fas fa-building
+                              text-gray-400 text-2xl"></i>
+
+                </div>
+
+                <h3 class="text-lg font-semibold text-gray-800">
+
+                    No Departments Found
+
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-1 mb-5">
+
+                    Add your first infrastructure department.
+
+                </p>
+
+
+                <a href="{{ url_for('add_department') }}"
+                   class="inline-flex items-center gap-2
+                          px-4 py-2
+                          bg-blue-600 hover:bg-blue-700
+                          text-white text-sm rounded-lg">
+
+                    <i class="fas fa-plus"></i>
+
+                    Add Department
+
+                </a>
+
+            </div>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+</div>
+<!-- ================= DELETE CONFIRMATION MODAL ================= -->
+
+<div id="deleteModal"
+     class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 px-4">
+
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+
+        <!-- Icon -->
+        <div class="flex justify-center mb-4">
+
+            <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+
+                <i class="fas fa-trash-alt text-red-600 text-xl"></i>
+
+            </div>
+
+        </div>
+
+        <!-- Title -->
+        <h3 class="text-lg font-bold text-gray-800 text-center">
+            Delete Department?
+        </h3>
+
+        <!-- Message -->
+        <p class="text-sm text-gray-500 text-center mt-2">
+            Are you sure you want to delete this department?
+        </p>
+
+        <p class="text-sm text-red-500 text-center mt-2">
+            This action cannot be undone.
+        </p>
+
+        <!-- Buttons -->
+        <div class="flex justify-center gap-3 mt-6">
+
+            <button type="button"
+                    onclick="closeDeleteModal()"
+                    class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
+
+                Cancel
+
+            </button>
+
+            <button type="button"
+                    onclick="confirmDelete()"
+                    class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
+
+                <i class="fas fa-trash mr-1"></i>
+
+                Delete
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================================================= -->
+<!-- JAVASCRIPT -->
+<!-- ================================================= -->
+
+<script>
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const overlay = document.getElementById('overlay');
+    const isDesktop = window.innerWidth >= 1024;
+
+    if (isDesktop) {
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.remove('lg:ml-0');
+                mainContent.classList.add('lg:ml-64');
+            }
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.remove('lg:ml-64');
+                mainContent.classList.add('lg:ml-0');
+            }
+        }
+    } else {
+        sidebar.classList.toggle('-translate-x-full');
+        if (overlay) overlay.classList.toggle('hidden');
+    }
+}
+    let selectedDeleteForm = null;
+
+
+    // Open delete confirmation modal
+    function showDeleteModal(button) {
+
+        selectedDeleteForm = button.closest(".delete-form");
+
+        const modal = document.getElementById("deleteModal");
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+
+
+    // Close modal
+    function closeDeleteModal() {
+
+        const modal = document.getElementById("deleteModal");
+
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+
+        selectedDeleteForm = null;
+    }
+
+
+    // Confirm deletion
+    function confirmDelete() {
+
+        if (selectedDeleteForm) {
+
+            selectedDeleteForm.submit();
+
+        }
+
+    }
+
+
+    // Close modal when clicking outside
+    document.getElementById("deleteModal").addEventListener("click", function(event) {
+
+        if (event.target === this) {
+
+            closeDeleteModal();
+
+        }
+
+    });
+
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

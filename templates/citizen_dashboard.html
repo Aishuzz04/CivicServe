@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Dashboard | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #1E40AF; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.1); }
+
+        /* Calendar styles */
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.15s;
+        }
+        .calendar-day:hover {
+            background-color: #eff6ff;
+        }
+        .calendar-day.today {
+            background-color: #dbeafe;
+            font-weight: 600;
+            color: #1d4ed8;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-top: 2px;
+        }
+        .dot-pending { background-color: #ec4899; }
+        .dot-verified { background-color: #8b5cf6; }
+        .dot-assigned { background-color: #3b82f6; }
+        .dot-completed { background-color: #22c55e; }
+        .dot-rejected { background-color: #ef4444; }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0A1F3D] text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Citizen Portal</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="{{ url_for('citizen_dashboard') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('register_complaint') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-edit w-5"></i> Register Complaint
+            </a>
+            <a href="{{ url_for('track_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search w-5"></i> Track Complaints
+            </a>
+            <a href="{{ url_for('profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-comment-dots w-5"></i> Feedback
+            </a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 mt-6">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden sm:inline">Home</span>
+                    </a>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('notifications') }}"
+                       class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                       title="Notifications">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                    </a>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ first_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Welcome -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ first_name }} 👋</h2>
+                <p class="text-gray-500 text-sm mt-1">Here's what's happening with your complaints.</p>
+            </div>
+
+            <!-- Quick Action Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <a href="{{ url_for('register_complaint') }}" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition group">
+                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-blue-100 transition">
+                        <i class="fas fa-edit text-xl text-blue-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Register Complaint</h3>
+                    <p class="text-xs text-gray-500 mt-1">Report new issues</p>
+                </a>
+                <a href="{{ url_for('track_complaints') }}" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition group">
+                    <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-green-100 transition">
+                        <i class="fas fa-clipboard-list text-xl text-green-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Track Complaints</h3>
+                    <p class="text-xs text-gray-500 mt-1">Check complaint status</p>
+                </a>
+                <a href="{{ url_for('notifications') }}" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition group">
+                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-100 transition">
+                        <i class="fas fa-bell text-xl text-purple-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">View Notifications</h3>
+                    <p class="text-xs text-gray-500 mt-1">Stay updated</p>
+                </a>
+                <a href="{{ url_for('profile') }}" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition group">
+                    <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-orange-100 transition">
+                        <i class="fas fa-user text-xl text-orange-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Profile</h3>
+                    <p class="text-xs text-gray-500 mt-1">Manage your profile</p>
+                </a>
+            </div>
+
+            <!-- Current Location Quick Action Banner -->
+            <div class="bg-gradient-to-r from-[#0A1F3D] via-blue-900 to-indigo-900 rounded-2xl p-5 sm:p-6 text-white shadow-sm mb-8 border border-blue-800/40 relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                    <div class="flex items-start sm:items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center text-blue-300 text-xl flex-shrink-0">
+                            <i class="fas fa-location-crosshairs"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-base text-white">Report at My Current Location</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/30 text-blue-200 border border-blue-400/30">GPS Auto-Insert</span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-blue-200/80 mt-1">
+                                1-click detect your current location to automatically fill in street name, area, and coordinates without finding or dragging markers on a map.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        <button type="button" onclick="launchWithCurrentLocation()" id="dashLocBtn"
+                            class="w-full sm:w-auto px-5 py-2.5 bg-blue-500 hover:bg-blue-400 active:scale-95 text-white font-semibold rounded-xl transition shadow flex items-center justify-center gap-2 text-sm cursor-pointer">
+                            <i class="fas fa-crosshairs"></i>
+                            <span id="dashLocText">Use Current Location</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report by Department Cards -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                        <i class="fas fa-building-circle-check text-blue-600"></i>
+                        Register Complaint by Department
+                    </h3>
+                    <span class="text-xs text-gray-500 hidden sm:inline">Select department to open its tailored form</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <a href="{{ url_for('register_complaint', dept='Roads') }}" class="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-blue-500 hover:shadow-md transition text-center group">
+                        <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition">
+                            <i class="fas fa-road text-lg"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">Roads</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Potholes & Pavement</p>
+                    </a>
+                    <a href="{{ url_for('register_complaint', dept='Street Lights') }}" class="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-blue-500 hover:shadow-md transition text-center group">
+                        <div class="w-11 h-11 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition">
+                            <i class="fas fa-lightbulb text-lg"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">Street Lights</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Outages & Poles</p>
+                    </a>
+                    <a href="{{ url_for('register_complaint', dept='Water Supply') }}" class="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-blue-500 hover:shadow-md transition text-center group">
+                        <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition">
+                            <i class="fas fa-faucet-drip text-lg"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">Water Supply</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Leaks & Pipelines</p>
+                    </a>
+                    <a href="{{ url_for('register_complaint', dept='Drainage') }}" class="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-blue-500 hover:shadow-md transition text-center group">
+                        <div class="w-11 h-11 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition">
+                            <i class="fas fa-water text-lg"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">Drainage</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Blockages & Manholes</p>
+                    </a>
+                    <a href="{{ url_for('register_complaint', dept='Waste Management') }}" class="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-blue-500 hover:shadow-md transition text-center group">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition">
+                            <i class="fas fa-trash-can text-lg"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">Waste Mgmt</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Garbage & Dumps</p>
+                    </a>
+                    <a href="{{ url_for('register_complaint', dept='Parks') }}" class="bg-white rounded-xl p-4 border border-gray-200/80 hover:border-blue-500 hover:shadow-md transition text-center group">
+                        <div class="w-11 h-11 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition">
+                            <i class="fas fa-tree text-lg"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-800">Parks</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Playgrounds & Trees</p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ===================== RECENT COMPLAINTS + CALENDAR ===================== -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+                <!-- Recent Complaints (Left - 2/3 width) -->
+                <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <h3 class="font-semibold text-gray-800">Recent Complaints</h3>
+                        <a href="{{ url_for('track_complaints') }}" class="text-sm text-blue-600 hover:underline font-medium">View All</a>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-600">
+                                <tr>
+                                    <th class="text-left px-5 py-3 font-medium">Complaint ID</th>
+                                    <th class="text-left px-5 py-3 font-medium">Category</th>
+                                    <th class="text-left px-5 py-3 font-medium">Location</th>
+                                    <th class="text-left px-5 py-3 font-medium">Status</th>
+                                    <th class="text-left px-5 py-3 font-medium">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% if recent_complaints %}
+                                    {% for complaint in recent_complaints %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-5 py-3.5 font-medium text-gray-800">#{{ complaint.complaint_id }}</td>
+                                        <td class="px-5 py-3.5 text-gray-600">{{ complaint.category }}</td>
+                                        <td class="px-5 py-3.5 text-gray-600">{{ complaint.location }}</td>
+                                        <td class="px-5 py-3.5">
+                                            {% if complaint.status == "Pending" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700">Pending</span>
+                                            {% elif complaint.status == "Under Verification" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Under Verification</span>
+                                            {% elif complaint.status == "Verified" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Verified</span>
+                                            {% elif complaint.status == "Assigned" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Assigned</span>
+                                            {% elif complaint.status == "Inspection" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Inspection</span>
+                                            {% elif complaint.status == "Maintenance" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Maintenance</span>
+                                            {% elif complaint.status == "Completed" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Completed</span>
+                                            {% elif complaint.status == "Rejected" %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Rejected</span>
+                                            {% else %}
+                                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ complaint.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-5 py-3.5 text-gray-500">
+                                            {{ complaint.created_at.strftime('%d-%m-%Y') if complaint.created_at else '-' }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="px-5 py-10 text-center text-gray-500">
+                                            <div class="flex flex-col items-center">
+                                                <i class="fas fa-clipboard-list text-3xl text-gray-300 mb-3"></i>
+                                                <p class="font-medium">No complaints registered yet.</p>
+                                                <p class="text-sm mt-1">Your recent complaints will appear here.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== CALENDAR (Right side) ===================== -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-800">Complaint Calendar</h3>
+                        <div class="flex gap-1">
+                            <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500">
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </button>
+                            <button onclick="changeMonth(1)" class="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p id="monthYear" class="text-sm font-medium text-gray-600 mb-3 text-center"></p>
+
+                    <!-- Week days -->
+                    <div class="grid grid-cols-7 gap-1 mb-1">
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">Su</div>
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">Mo</div>
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">Tu</div>
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">We</div>
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">Th</div>
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">Fr</div>
+                        <div class="text-center text-[11px] font-medium text-gray-400 py-1">Sa</div>
+                    </div>
+
+                    <!-- Days -->
+                    <div id="calendarDays" class="grid grid-cols-7 gap-1"></div>
+
+                    <!-- Legend -->
+                    <div class="mt-4 pt-3 border-t border-gray-100">
+                        <p class="text-xs font-medium text-gray-500 mb-2">Status Colors</p>
+                        <div class="flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-gray-600">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-pink-500"></span> Pending</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span> Verified</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Assigned</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Completed</span>
+                        </div>
+                    </div>
+
+                    <!-- Selected day info -->
+                    <div id="dayInfo"
+                         class="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm hidden shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="font-semibold text-gray-800" id="dayInfoTitle"></p>
+                            <button
+                                type="button"
+                                onclick="document.getElementById('dayInfo').classList.add('hidden')"
+                                class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="dayInfoList"
+                             class="space-y-1 text-xs text-gray-600">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ===================== COMPLAINT SUMMARY ===================== -->
+            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-800">
+                        Complaint Summary
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Overview of all your complaints
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 p-5">
+                    <!-- Total -->
+                    <div class="rounded-xl bg-blue-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-clipboard-list text-blue-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.total }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Total
+                        </p>
+                    </div>
+                    <!-- Pending -->
+                    <div class="rounded-xl bg-pink-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-pink-100
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-clock text-pink-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.pending }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Pending
+                        </p>
+                    </div>
+                    <!-- Under Verification -->
+                    <div class="rounded-xl bg-yellow-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-yellow-100
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-search text-yellow-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.under_verification }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Verification
+                        </p>
+                    </div>
+                    <!-- In Progress -->
+                    <div class="rounded-xl bg-purple-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-spinner text-purple-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.in_progress }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            In Progress
+                        </p>
+                    </div>
+                    <!-- Completed -->
+                    <div class="rounded-xl bg-green-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-100
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.completed }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Completed
+                        </p>
+                    </div>
+                    <!-- Closed -->
+                    <div class="rounded-xl bg-gray-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-gray-200
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-lock text-gray-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.closed }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Closed
+                        </p>
+                    </div>
+                    <!-- Rejected -->
+                    <div class="rounded-xl bg-red-50 p-4">
+                        <div class="w-10 h-10 rounded-lg bg-red-100
+                                    flex items-center justify-center mb-3">
+                            <i class="fas fa-times-circle text-red-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">
+                            {{ complaint_summary.rejected }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Rejected
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        if (!sidebar) return;
+
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            // Desktop collapse / expand
+            const isHidden = sidebar.classList.contains('sidebar-hidden') || sidebar.style.transform === 'translateX(-100%)';
+
+            if (isHidden) {
+                // Reclicked -> Display sidebar again
+                sidebar.classList.remove('sidebar-hidden');
+                sidebar.style.removeProperty('transform');
+                if (mainContent) {
+                    mainContent.classList.remove('content-expanded');
+                    mainContent.style.removeProperty('margin-left');
+                }
+            } else {
+                // Clicked -> Hide sidebar
+                sidebar.classList.add('sidebar-hidden');
+                sidebar.style.transform = 'translateX(-100%)';
+                if (mainContent) {
+                    mainContent.classList.add('content-expanded');
+                    mainContent.style.marginLeft = '0px';
+                }
+            }
+        } else {
+            // Mobile drawer toggle
+            const isMobileOpen = sidebar.classList.contains('sidebar-mobile-show') || sidebar.style.transform === 'translateX(0px)';
+
+            if (isMobileOpen) {
+                // Reclicked -> Hide sidebar
+                sidebar.classList.remove('sidebar-mobile-show');
+                sidebar.style.transform = 'translateX(-100%)';
+                if (overlay) overlay.classList.add('hidden');
+            } else {
+                // Clicked -> Display sidebar
+                sidebar.classList.add('sidebar-mobile-show');
+                sidebar.style.transform = 'translateX(0px)';
+                if (overlay) overlay.classList.remove('hidden');
+            }
+        }
+    }
+    // ========== CALENDAR ==========
+
+    let currentDate = new Date();
+
+    const complaintData = {};
+
+    {% for complaint in calendar_complaints %}
+        {% if complaint.created_at %}
+            if (!complaintData["{{ complaint.created_at }}"]) {
+                complaintData["{{ complaint.created_at }}"] = [];
+            }
+
+            complaintData["{{ complaint.created_at }}"].push({
+                id: "{{ complaint.complaint_id }}",
+                category: "{{ complaint.category|e }}",
+                location: "{{ complaint.location|e }}",
+                status: "{{ complaint.status|e }}"
+            });
+        {% endif %}
+    {% endfor %}
+
+
+    function getStatusClass(status) {
+
+        if (status === "Pending") {
+            return "dot-pending";
+        }
+
+        if (status === "Under Verification") {
+            return "dot-pending";
+        }
+
+        if (status === "Verified") {
+            return "dot-verified";
+        }
+
+        if (
+            status === "Assigned" ||
+            status === "Inspection" ||
+            status === "Maintenance"
+        ) {
+            return "dot-assigned";
+        }
+
+        if (status === "Completed") {
+            return "dot-completed";
+        }
+
+        if (status === "Closed") {
+            return "dot-completed";
+        }
+
+        if (status === "Rejected") {
+            return "dot-rejected";
+        }
+
+        return "dot-pending";
+    }
+
+
+    function renderCalendar() {
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        const monthNames = [
+            "January", "February", "March", "April",
+            "May", "June", "July", "August",
+            "September", "October", "November", "December"
+        ];
+
+        document.getElementById("monthYear").textContent =
+            `${monthNames[month]} ${year}`;
+
+
+        const firstDay = new Date(year, month, 1).getDay();
+
+        const daysInMonth =
+            new Date(year, month + 1, 0).getDate();
+
+
+        const container =
+            document.getElementById("calendarDays");
+
+        container.innerHTML = "";
+
+
+        // Empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            container.innerHTML += `<div></div>`;
+        }
+
+
+        const today = new Date();
+
+
+        for (let day = 1; day <= daysInMonth; day++) {
+
+            const dateStr =
+                `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+
+            const isToday =
+                day === today.getDate() &&
+                month === today.getMonth() &&
+                year === today.getFullYear();
+
+
+            const complaints =
+                complaintData[dateStr] || [];
+
+
+            let dotsHtml = "";
+
+            complaints.slice(0, 3).forEach(c => {
+
+                dotsHtml +=
+                    `<span class="dot ${getStatusClass(c.status)}"></span>`;
+
+            });
+
+
+            container.innerHTML += `
+
+                <div
+                    class="calendar-day ${isToday ? 'today' : ''}"
+                    onclick="showDayInfo('${dateStr}', ${day})"
+                >
+
+                    <span>${day}</span>
+
+                    <div class="flex gap-0.5">
+                        ${dotsHtml}
+                    </div>
+
+                </div>
+
+            `;
+        }
+    }
+
+
+    function showDayInfo(dateStr, day) {
+
+        const complaints =
+            complaintData[dateStr] || [];
+
+
+        const infoBox =
+            document.getElementById("dayInfo");
+
+        const title =
+            document.getElementById("dayInfoTitle");
+
+        const list =
+            document.getElementById("dayInfoList");
+
+
+        if (complaints.length === 0) {
+
+            infoBox.classList.add("hidden");
+
+            return;
+        }
+
+
+        title.textContent =
+            `${day} — ${complaints.length} complaint(s)`;
+
+
+        list.innerHTML = complaints.map(c => `
+
+            <div class="py-2 border-b border-gray-200 last:border-0">
+
+                <div class="flex items-center justify-between">
+
+                    <span class="font-semibold text-gray-800">
+                        #${c.id}
+                    </span>
+
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+                        ${getStatusBadgeClass(c.status)}">
+
+                        ${c.status}
+
+                    </span>
+
+                </div>
+
+                <p class="text-gray-500 mt-1">
+                    ${c.category}
+                </p>
+
+                <p class="text-gray-400 text-[11px] mt-0.5">
+                    ${c.location}
+                </p>
+
+            </div>
+
+        `).join("");
+
+
+        infoBox.classList.remove("hidden");
+    }
+
+
+    function getStatusBadgeClass(status) {
+
+        if (status === "Pending") {
+            return "bg-pink-100 text-pink-700";
+        }
+
+        if (status === "Under Verification") {
+            return "bg-yellow-100 text-yellow-700";
+        }
+
+        if (status === "Verified") {
+            return "bg-purple-100 text-purple-700";
+        }
+
+        if (
+            status === "Assigned" ||
+            status === "Inspection" ||
+            status === "Maintenance"
+        ) {
+            return "bg-blue-100 text-blue-700";
+        }
+
+        if (
+            status === "Completed" ||
+            status === "Closed"
+        ) {
+            return "bg-green-100 text-green-700";
+        }
+
+        if (status === "Rejected") {
+            return "bg-red-100 text-red-700";
+        }
+
+        return "bg-gray-100 text-gray-700";
+    }
+
+
+    function changeMonth(offset) {
+
+        currentDate.setMonth(
+            currentDate.getMonth() + offset
+        );
+
+        document
+            .getElementById("dayInfo")
+            .classList.add("hidden");
+
+        renderCalendar();
+    }
+
+
+    function launchWithCurrentLocation() {
+        const btn = document.getElementById('dashLocBtn');
+        const btnText = document.getElementById('dashLocText');
+
+        if (!navigator.geolocation) {
+            alert("Your browser does not support GPS geolocation. Opening complaint form...");
+            window.location.href = "{{ url_for('register_complaint') }}";
+            return;
+        }
+
+        btn.disabled = true;
+        btnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Detecting GPS...';
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                window.location.href = "{{ url_for('register_complaint') }}?lat=" + lat + "&lng=" + lng + "&auto_gps=1";
+            },
+            function(error) {
+                btn.disabled = false;
+                btnText.innerHTML = 'Use Current Location';
+                let msg = "Could not retrieve GPS location.";
+                if (error.code === 1) msg = "GPS permission was denied. You can still type your address manually on the complaint form.";
+                else if (error.code === 2) msg = "Location unavailable. Opening complaint form...";
+                else if (error.code === 3) msg = "GPS request timed out. Opening complaint form...";
+                alert(msg);
+                window.location.href = "{{ url_for('register_complaint') }}";
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+    }
+
+    renderCalendar();
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

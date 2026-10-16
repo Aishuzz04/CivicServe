@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint Inspection | Engineer Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+
+<body class="bg-gray-50">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Engineer Portal</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('engineer_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('engineer_assigned') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-clipboard-list w-5"></i> My Assignments
+            </a>
+            <a href="{{ url_for('engineer_inspection') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search-location w-5"></i> Inspections
+            </a>
+            <a href="{{ url_for('engineer_inspection_reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-file-waveform w-5"></i> Inspection Reports
+            </a>
+        </nav>
+
+        <div class="px-3 py-4 border-t border-blue-900/40">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="text-lg font-semibold text-gray-800">Complaint Inspection #{{ complaint.complaint_id }}</h2>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium text-gray-800">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-gray-500">Field Engineer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl flex items-center justify-between text-sm {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas {% if category == 'error' %}fa-circle-exclamation text-red-500{% elif category == 'success' %}fa-circle-check text-emerald-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                                    <span>{{ message|safe }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Back navigation -->
+            <div class="mb-5 flex items-center justify-between">
+                <a href="{{ url_for('engineer_assigned') }}" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <i class="fas fa-arrow-left"></i> Back to My Assignments
+                </a>
+                <a href="{{ url_for('engineer_inspection_reports') }}" class="text-xs text-purple-600 hover:text-purple-800 font-medium inline-flex items-center gap-1">
+                    <i class="fas fa-file-waveform"></i> View All Reports
+                </a>
+            </div>
+
+            <!-- Header Title & Badges -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-bold font-mono px-2.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                            COMPLAINT #{{ complaint.complaint_id }}
+                        </span>
+                        <span class="text-xs px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
+                            <i class="fas fa-tag mr-1 text-[10px]"></i>{{ complaint.category or 'General' }}
+                        </span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">
+                        {{ complaint.title }}
+                    </h1>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Reported by {{ complaint.citizen_first_name }} {{ complaint.citizen_last_name }} on {{ complaint.created_at }}
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Status Badge -->
+                    {% if complaint.status == 'Assigned' %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                            <i class="fas fa-clock mr-1"></i> Assigned
+                        </span>
+                    {% elif complaint.status == 'Inspection' %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
+                            <i class="fas fa-search mr-1"></i> Under Inspection
+                        </span>
+                    {% elif complaint.status == 'Maintenance' %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                            <i class="fas fa-tools mr-1"></i> Sent to Maintenance
+                        </span>
+                    {% elif complaint.status == 'Completed' %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            <i class="fas fa-check-circle mr-1"></i> Completed
+                        </span>
+                    {% else %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                            {{ complaint.status }}
+                        </span>
+                    {% endif %}
+
+                    <!-- Priority Badge -->
+                    {% if complaint.priority == 'High' or complaint.priority == 'Critical' %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                            <i class="fas fa-triangle-exclamation mr-1"></i> High Priority
+                        </span>
+                    {% elif complaint.priority == 'Medium' %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                            <i class="fas fa-circle-exclamation mr-1"></i> Medium Priority
+                        </span>
+                    {% else %}
+                        <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                            <i class="fas fa-info-circle mr-1"></i> Low Priority
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- STEP 1 PROMPT: Start Inspection (when complaint is Assigned) -->
+            {% if complaint.status == 'Assigned' %}
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0 shadow">
+                        <i class="fas fa-play"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-blue-900 text-sm">Step 1 — Start Field Inspection</h4>
+                        <p class="text-xs text-blue-700 mt-0.5">This complaint has been assigned to you. Click <strong>Start Inspection</strong> to advance status to Under Inspection and document your on-site findings.</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('engineer_start_inspection', complaint_id=complaint.complaint_id) }}"
+                   class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fas fa-play"></i> Start Inspection
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- VERIFICATION STATUS ALERTS -->
+            {% if inspection_report %}
+                {% if inspection_report.status == 'Pending Verification' %}
+                <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 shadow-sm">
+                    <div class="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-amber-900 text-sm">Inspection Report Submitted for Verification</h4>
+                        <p class="text-xs text-amber-800 mt-0.5">This report has been sent to your <strong>Department Head</strong> for authorization. Repair work will proceed to the maintenance team once approved.</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                        Awaiting Verification
+                    </span>
+                </div>
+                {% elif inspection_report.status == 'Revision Requested' %}
+                <div class="mb-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fas fa-rotate-left"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-red-900 text-sm">Revision Requested by Department Head</h4>
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-200 text-red-900">Action Required</span>
+                            </div>
+                            <div class="mt-2 p-3 bg-white rounded-lg border border-red-200 text-xs text-red-900 font-medium">
+                                <span class="font-bold block text-red-700 uppercase text-[10px] mb-0.5"><i class="fas fa-comment-dots mr-1"></i>Supervisor Remarks:</span>
+                                {{ inspection_report.supervisor_remarks }}
+                            </div>
+                            <p class="text-xs text-red-700 mt-2">
+                                Please review the supervisor's remarks, update your technical findings or required materials below, and click <strong>Resubmit for Verification</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% elif inspection_report.status == 'Approved' %}
+                <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3 shadow-sm">
+                    <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fas fa-circle-check"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-emerald-900 text-sm">Inspection Report Approved & Authorized</h4>
+                        <p class="text-xs text-emerald-800 mt-0.5">Your inspection report has been verified and approved by the Department Head. Recommended maintenance repairs have been authorized.</p>
+                        {% if inspection_report.verified_at %}
+                        <p class="text-[11px] text-emerald-700 mt-1 font-mono">Approved on {{ inspection_report.verified_at }}</p>
+                        {% endif %}
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Approved
+                    </span>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- TWO COLUMN LAYOUT -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- LEFT COLUMN (2 Cols): Complaint Details, Citizen Photo, Location Details -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Complaint Information -->
+                    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-file-lines text-blue-600"></i>
+                            Complaint Description
+                        </h2>
+                        <div class="p-4 bg-gray-50 rounded-xl text-gray-800 text-sm leading-relaxed border border-gray-100">
+                            {{ complaint.description or 'No detailed description provided by citizen.' }}
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pt-4 border-t border-gray-100 text-xs">
+                            <div>
+                                <span class="text-gray-400 uppercase font-semibold block">Category</span>
+                                <span class="text-gray-800 font-medium text-sm mt-0.5 block">{{ complaint.category or 'General' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 uppercase font-semibold block">Road Name</span>
+                                <span class="text-gray-800 font-medium text-sm mt-0.5 block">{{ complaint.road_name or '—' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 uppercase font-semibold block">Landmark</span>
+                                <span class="text-gray-800 font-medium text-sm mt-0.5 block">{{ complaint.landmark or '—' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Location & Map Inspection -->
+                    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-location-dot text-red-500"></i>
+                                Inspection Location
+                            </h2>
+                            {% if complaint.latitude and complaint.longitude %}
+                            <a href="https://maps.google.com/?q={{ complaint.latitude }},{{ complaint.longitude }}" target="_blank"
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition border border-blue-200">
+                                <i class="fas fa-arrow-up-right-from-square"></i> Open in Google Maps
+                            </a>
+                            {% elif complaint.location %}
+                            <a href="https://maps.google.com/?q={{ complaint.location }}" target="_blank"
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition border border-blue-200">
+                                <i class="fas fa-arrow-up-right-from-square"></i> Search Map Location
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <div class="space-y-3 text-sm">
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <span class="text-xs text-gray-500 font-medium block">Reported Address / Location:</span>
+                                <span class="font-semibold text-gray-800 text-base">{{ complaint.location }}</span>
+                            </div>
+
+                            {% if complaint.location_details %}
+                            <div>
+                                <span class="text-xs text-gray-400 uppercase font-semibold block">Additional Location Notes:</span>
+                                <p class="text-gray-700 mt-0.5">{{ complaint.location_details }}</p>
+                            </div>
+                            {% endif %}
+
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-xs text-gray-400 uppercase font-bold block">Latitude</span>
+                                    <span class="font-mono text-gray-800 font-medium">{{ complaint.latitude or 'Not recorded' }}</span>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-xs text-gray-400 uppercase font-bold block">Longitude</span>
+                                    <span class="font-mono text-gray-800 font-medium">{{ complaint.longitude or 'Not recorded' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Citizen Uploaded Photo -->
+                    {% if complaint.image_path %}
+                    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <h2 class="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <i class="fas fa-camera text-blue-600"></i>
+                            Citizen Reported Photo
+                        </h2>
+                        <div class="rounded-xl overflow-hidden border border-gray-200 bg-gray-900/5 max-h-[380px] flex items-center justify-center">
+                            <img src="/{{ complaint.image_path }}"
+                                 alt="Citizen complaint photo"
+                                 class="max-h-[380px] w-auto object-contain cursor-pointer hover:opacity-95 transition"
+                                 onclick="window.open(this.src, '_blank')">
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 text-center">
+                            <i class="fas fa-info-circle mr-1"></i>Click photo to open full resolution in new tab
+                        </p>
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                <!-- RIGHT COLUMN (1 Col): Inspection Findings, Form & Recommendations -->
+                <div class="space-y-6">
+
+                    <!-- Existing Recorded Inspection Report Card (if already saved) -->
+                    {% if inspection_report %}
+                    <div class="bg-white rounded-xl border-2 border-purple-200 shadow-md p-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-purple-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                            <i class="fas fa-check-circle mr-1"></i>Report Filed
+                        </div>
+
+                        <div class="flex items-center gap-2.5 mb-4">
+                            <div class="w-9 h-9 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">
+                                <i class="fas fa-file-waveform"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-base">Technical Inspection Report</h3>
+                                <p class="text-xs text-gray-500 font-mono">Report #REP-{{ inspection_report.report_id }} · {{ inspection_report.inspection_date }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3.5 text-sm">
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="bg-purple-50 p-2.5 rounded-lg border border-purple-100">
+                                    <span class="text-purple-600 font-semibold block text-[11px] uppercase">Severity</span>
+                                    <span class="font-bold text-purple-900 text-sm">{{ inspection_report.severity or 'Not specified' }}</span>
+                                </div>
+                                <div class="bg-purple-50 p-2.5 rounded-lg border border-purple-100">
+                                    <span class="text-purple-600 font-semibold block text-[11px] uppercase">Est. Repair Cost</span>
+                                    <span class="font-bold text-purple-900 text-sm">
+                                        {% if inspection_report.estimated_cost is not none %}
+                                            ₹{{ "{:,.2f}".format(inspection_report.estimated_cost) }}
+                                        {% else %}
+                                            ₹0.00
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <span class="text-xs font-bold text-amber-800 uppercase tracking-wide block mb-1">
+                                    <i class="fas fa-lightbulb mr-1"></i>Recommended Action
+                                </span>
+                                <p class="text-xs font-semibold text-amber-950">
+                                    {{ inspection_report.recommendation or 'No recommendation specified' }}
+                                </p>
+                            </div>
+
+                            {% if inspection_report.required_materials %}
+                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <span class="text-xs font-bold text-blue-800 uppercase tracking-wide block mb-1">
+                                    <i class="fas fa-boxes-stacked mr-1"></i>Required Materials & Resources
+                                </span>
+                                <p class="text-xs font-semibold text-blue-950">
+                                    {{ inspection_report.required_materials }}
+                                </p>
+                            </div>
+                            {% endif %}
+
+                            <div>
+                                <span class="text-xs text-gray-400 font-semibold uppercase block mb-1">Inspection Findings</span>
+                                <div class="p-3 bg-gray-50 rounded-lg text-xs text-gray-800 leading-relaxed border border-gray-100 whitespace-pre-line font-medium">
+                                    {{ inspection_report.findings }}
+                                </div>
+                            </div>
+
+                            {% if inspection_report.inspection_image %}
+                            <div>
+                                <span class="text-xs text-gray-400 font-semibold uppercase block mb-1.5">Site Inspection Photo</span>
+                                <div class="rounded-lg overflow-hidden border border-gray-200 bg-black/5 max-h-48 flex items-center justify-center">
+                                    <img src="/{{ inspection_report.inspection_image }}"
+                                         alt="Engineer site photo"
+                                         class="max-h-48 w-auto object-contain cursor-pointer hover:opacity-90"
+                                         onclick="window.open(this.src, '_blank')">
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <span class="text-[11px] text-emerald-600 font-medium">
+                                    <i class="fas fa-circle-check mr-1"></i>Visible to Supervisor & Maintenance
+                                </span>
+                                <button type="button" onclick="document.getElementById('inspectionFormCard').scrollIntoView({behavior: 'smooth'})"
+                                        class="text-xs text-purple-700 hover:text-purple-900 font-bold underline">
+                                    Edit Report ↓
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Record / Update Inspection Findings Form -->
+                    <div id="inspectionFormCard" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                            <div>
+                                <h3 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                                    <i class="fas fa-clipboard-check text-blue-600"></i>
+                                    {% if inspection_report and inspection_report.status == 'Revision Requested' %}
+                                        Update & Resubmit Inspection Findings
+                                    {% elif inspection_report %}
+                                        Update Inspection Findings
+                                    {% else %}
+                                        Record Inspection Findings
+                                    {% endif %}
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    Document findings, recommended actions, required materials & supporting evidence
+                                </p>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{{ url_for('engineer_submit_inspection', complaint_id=complaint.complaint_id) }}" enctype="multipart/form-data" class="space-y-4">
+
+                            <!-- Inspection Date -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Inspection Date *
+                                </label>
+                                <input type="date" name="inspection_date" required
+                                       value="{{ inspection_report.inspection_date if inspection_report else '' }}"
+                                       id="inspectionDateInput"
+                                       class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+
+                            <!-- Severity Level -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Damage Severity *
+                                </label>
+                                <select name="severity" required
+                                        class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                    <option value="Low" {% if inspection_report and inspection_report.severity == 'Low' %}selected{% endif %}>Low</option>
+                                    <option value="Medium" {% if (inspection_report and inspection_report.severity == 'Medium') or not inspection_report %}selected{% endif %}>Medium</option>
+                                    <option value="High" {% if inspection_report and inspection_report.severity == 'High' %}selected{% endif %}>High</option>
+                                    <option value="Critical" {% if inspection_report and inspection_report.severity == 'Critical' %}selected{% endif %}>Critical</option>
+                                </select>
+                            </div>
+
+                            <!-- Inspection Findings Textarea -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Inspection Findings *
+                                </label>
+                                <textarea name="findings" rows="4" required
+                                          placeholder="e.g. The streetlight is not switching on. Visible inspection suggests a possible electrical fault."
+                                          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none">{{ inspection_report.findings if inspection_report else '' }}</textarea>
+                            </div>
+
+                            <!-- Recommended Action -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Recommended Action *
+                                </label>
+                                <textarea name="recommendation" rows="2" required
+                                          placeholder="e.g. Check the electrical connections and replace the faulty lamp if necessary."
+                                          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none font-medium text-gray-800">{{ inspection_report.recommendation if inspection_report and inspection_report.recommendation else '' }}</textarea>
+                            </div>
+
+                            <!-- Required Materials / Resources -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Required Materials / Resources
+                                </label>
+                                <textarea name="required_materials" rows="2"
+                                          placeholder="e.g. Replacement lamp and electrical testing equipment, subject to confirmation during repair."
+                                          class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none font-medium text-gray-800">{{ inspection_report.required_materials if inspection_report and inspection_report.required_materials else '' }}</textarea>
+                                <p class="text-[11px] text-gray-400 mt-0.5">List parts, equipment, or tools needed for the maintenance crew.</p>
+                            </div>
+
+                            <!-- Estimated Cost -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Estimated Repair Cost (₹)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3.5 top-2 text-gray-400 font-bold text-sm">₹</span>
+                                    <input type="number" step="0.01" min="0" name="estimated_cost"
+                                           value="{{ inspection_report.estimated_cost if inspection_report and inspection_report.estimated_cost is not none else '' }}"
+                                           placeholder="e.g. 15000.00"
+                                           class="w-full pl-8 pr-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                                </div>
+                            </div>
+
+                            <!-- Supporting Site Image Upload / Evidence -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Inspection Evidence (Upload Photographs)
+                                </label>
+                                <div class="border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-lg p-3 text-center transition cursor-pointer bg-gray-50/50">
+                                    <input type="file" name="inspection_image" accept="image/*" id="inspectionFileInput" class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    <p class="text-[11px] text-gray-400 mt-1">Upload on-site evidence photographs (PNG, JPG up to 5MB)</p>
+                                </div>
+                            </div>
+
+                            <!-- Workflow Info Notice -->
+                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
+                                <i class="fas fa-shield-halved text-blue-600 text-sm mt-0.5 flex-shrink-0"></i>
+                                <div class="leading-relaxed">
+                                    <span class="font-bold">Department Head Verification:</span>
+                                    Submitting this report saves your inspection in PostgreSQL and forwards it to your Department Head. The engineer cannot directly approve their own report.
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="pt-2">
+                                <button type="submit" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow transition flex items-center justify-center gap-2">
+                                    <i class="fas fa-paper-plane"></i>
+                                    {% if inspection_report and inspection_report.status == 'Revision Requested' %}
+                                        Resubmit for Verification
+                                    {% else %}
+                                        Submit for Verification
+                                    {% endif %}
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    // Default today's date if empty
+    const dateInput = document.getElementById('inspectionDateInput');
+    if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

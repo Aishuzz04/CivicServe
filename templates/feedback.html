@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #1E40AF; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.1); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+<div class="flex min-h-screen">
+
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0A1F3D] text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Citizen Portal</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="{{ url_for('citizen_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('register_complaint') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-edit w-5"></i> Register Complaint
+            </a>
+            <a href="{{ url_for('track_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search w-5"></i> Track Complaints
+            </a>
+            <a href="{{ url_for('profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-comment-dots w-5"></i> Feedback
+            </a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 mt-6">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+
+                <!-- Left side -->
+                <div class="flex items-center gap-3">
+                    <!-- Mobile / Desktop menu button -->
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <!-- Home Button -->
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden sm:inline">Home</span>
+                    </a>
+                </div>
+
+                <!-- Right side (Notifications + User info) -->
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('notifications') }}"
+                       class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                       title="Notifications">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                    </a>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ first_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main class="p-4 sm:p-6 lg:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Submit Feedback</h2>
+            <p class="text-gray-500 text-sm mb-6">Share your experience about the service or a resolved complaint.</p>
+            {% if success %}
+            <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ success }}</span>
+            </div>
+            {% endif %}
+
+            {% if error %}
+            <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 max-w-2xl">
+                <form method="POST" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Related Complaint (Optional)</label>
+                        <select name="complaint_id"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+
+                        <option value="">-- Select Complaint --</option>
+
+                        {% for complaint in complaints %}
+                            <option value="{{ complaint.complaint_id }}">
+                                #{{ complaint.complaint_id }} - {{ complaint.category }} ({{ complaint.location }})
+                            </option>
+                        {% endfor %}
+
+                    </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                        <div>
+                            <div id="ratingStars" class="flex gap-2 text-2xl text-gray-300">
+                                <i class="fas fa-star cursor-pointer" data-rating="1"></i>
+                                <i class="fas fa-star cursor-pointer" data-rating="2"></i>
+                                <i class="fas fa-star cursor-pointer" data-rating="3"></i>
+                                <i class="fas fa-star cursor-pointer" data-rating="4"></i>
+                                <i class="fas fa-star cursor-pointer" data-rating="5"></i>
+                            </div>
+
+                            <input type="hidden" name="rating" id="rating" value="0">
+
+                            <p id="ratingText" class="text-xs text-gray-400 mt-1">
+                                Select a rating
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Your Feedback</label>
+                        <textarea name="feedback" rows="5" placeholder="Write your feedback here..."
+                                  class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none" required></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit Feedback
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+    const stars = document.querySelectorAll('#ratingStars i');
+    const ratingInput = document.getElementById('rating');
+    const ratingText = document.getElementById('ratingText');
+
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+
+            const rating = parseInt(this.dataset.rating);
+
+            ratingInput.value = rating;
+
+            stars.forEach(s => {
+                const starRating = parseInt(s.dataset.rating);
+
+                if (starRating <= rating) {
+                    s.classList.remove('text-gray-300');
+                    s.classList.add('text-yellow-400');
+                } else {
+                    s.classList.remove('text-yellow-400');
+                    s.classList.add('text-gray-300');
+                }
+            });
+
+            ratingText.textContent = rating + " out of 5";
+        });
+    });
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

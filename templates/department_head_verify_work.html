@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Work | Department Head</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+<div class="flex min-h-screen overflow-x-hidden">
+    <div id="mainContent" class="flex-1 min-w-0 max-w-full overflow-x-hidden">
+        <main class="p-4 sm:p-6 lg:p-8 max-w-5xl">
+            <div class="mb-6">
+                <a href="{{ url_for('department_head_complaints') }}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Complaints
+                </a>
+            </div>
+
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Verify Completed Work</h2>
+                <p class="text-sm text-gray-500 mt-1">Review the maintenance work before closing the complaint.</p>
+            </div>
+
+            <!-- Keep your existing Complaint + Work Report + Verification sections here -->
+            <!-- (same as the code you shared) -->
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+                <!-- Your complaint details block -->
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+                <!-- Your Work Report block -->
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800">Work Verification</h3>
+                <p class="text-sm text-gray-500 mt-1 mb-6">Review the submitted work report and select an action.</p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="verify">
+                        <button type="submit" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">
+                            <i class="fas fa-check mr-2"></i> Verify Work
+                        </button>
+                    </form>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
+                            <i class="fas fa-times mr-2"></i> Reject Work
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Environment variables and sensitive credentials
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & Editor settings
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Logs and temporary files
+*.log
+.DS_Store
+Thumbs.db

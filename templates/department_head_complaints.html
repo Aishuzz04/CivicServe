@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaints | Department Head</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .sidebar-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.08);
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+<div class="flex min-h-screen overflow-x-hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Department Head</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('department_head_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i>Dashboard
+            </a>
+            <a href="{{ url_for('department_head_complaints') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-clipboard-list w-5"></i>Complaints
+            </a>
+            <a href="{{ url_for('department_head_assign_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-tasks w-5"></i>Assign Work
+            </a>
+            <a href="{{ url_for('department_head_verify_inspections') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-check w-5"></i>Verify Inspections
+            </a>
+            <a href="{{ url_for('department_head_engineers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-hard-hat w-5"></i> Engineers
+            </a>
+            <a href="{{ url_for('department_head_field_workers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users-cog w-5"></i> Field Workers
+            </a>
+            <a href="{{ url_for('department_head_reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i> Reports
+            </a>
+            <a href="{{ url_for('department_head_profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+        </nav>
+        <div class="px-4 py-4 border-t border-blue-900/40">
+            <a href="#"
+               class="flex items-center gap-2 text-sm text-blue-200 hover:text-white">
+                <i class="fas fa-question-circle"></i>
+                <div>
+                    <p class="font-medium">Need Help?</p>
+                    <p class="text-xs text-blue-300">
+                        Contact Administrator
+                    </p>
+                </div>
+            </a>
+        </div>
+    </aside>
+    <!-- Mobile Overlay -->
+    <div id="overlay"
+         class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"
+         onclick="toggleSidebar()">
+    </div>
+    <div id="mainContent" class="flex-1 lg:ml-64 min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ease-in-out">
+        <!-- Header -->
+        <header class="bg-[#0B1C3D] text-white sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <button onclick="toggleSidebar()"
+                        class="p-2 text-white hover:bg-white/10 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center gap-4 ml-auto">
+                    <button class="relative p-2 hover:bg-white/10 rounded-lg">
+                        <i class="fas fa-bell"></i>
+                        <span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-[10px] font-bold rounded-full flex items-center justify-center">
+                            3
+                        </span>
+                    </button>
+                    <div class="flex items-center gap-2 border-l border-white/20 pl-4">
+                        <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium">
+                                {{ first_name }} {{ last_name | default('') }}
+                            </p>
+                            <p class="text-xs text-blue-200">
+                                Department Head
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 rounded-lg text-sm">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="hidden sm:inline">
+                            Logout
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </header>
+        <!-- Main -->
+        <main class="p-4 sm:p-6 lg:p-8">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif category == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas {% if category == 'success' %}fa-check-circle text-emerald-500{% elif category == 'info' %}fa-info-circle text-blue-500{% else %}fa-exclamation-circle text-red-500{% endif %} text-base"></i>
+                                    <span>{{ message | safe }}</span>
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        Complaints
+                    </h2>
+                    <p class="text-sm text-gray-500">
+                        Verified complaints under your department
+                    </p>
+                </div>
+            </div>
+            <!-- Filters -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-col sm:flex-row gap-3">
+                <input type="text"
+                       placeholder="Search by ID, title or location..."
+                       class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <select class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <option value="">All Status</option>
+                    <option>Pending</option>
+                    <option>Assigned</option>
+                    <option>Inspection</option>
+                    <option>Maintenance</option>
+                    <option>Completed</option>
+                </select>
+                <select class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <option value="">All Priority</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                </select>
+                <button class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
+                    <i class="fas fa-search mr-1"></i>
+                    Search
+                </button>
+            </div>
+            <!-- Complaints Table -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500">
+                        <tr>
+                            <th class="text-left px-5 py-3 font-medium">
+                                ID
+                            </th>
+                            <th class="text-left px-5 py-3 font-medium">
+                                Title
+                            </th>
+                            <th class="text-left px-5 py-3 font-medium">
+                                Location
+                            </th>
+                            <th class="text-left px-5 py-3 font-medium">
+                                Priority
+                            </th>
+
+                            <th class="text-left px-5 py-3 font-medium">
+                                Status
+                            </th>
+
+                            <th class="text-left px-5 py-3 font-medium">
+                                Created By
+                            </th>
+
+                            <th class="text-left px-5 py-3 font-medium">
+                                Date
+                            </th>
+
+                            <th class="text-left px-5 py-3 font-medium">
+                                Action
+                            </th>
+
+                        </tr>
+
+                        </thead>
+
+
+                        <tbody class="divide-y divide-gray-100">
+
+                        {% if complaints %}
+
+                            {% for complaint in complaints %}
+
+                            <tr class="hover:bg-gray-50">
+
+                                <!-- ID -->
+                                <td class="px-5 py-3.5 font-medium whitespace-nowrap">
+                                    #{{ complaint[0] }}
+                                    {% if complaint[15] %}
+                                    <span class="ml-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800" title="Linked to Main Complaint #{{ complaint[16] }}">
+                                        <i class="fas fa-link text-[10px]"></i> Duplicate
+                                    </span>
+                                    {% endif %}
+                                </td>
+
+
+                                <!-- Title -->
+                                <td class="px-5 py-3.5">
+                                    {{ complaint[1] }}
+                                </td>
+
+
+                                <!-- Location -->
+                                <td class="px-5 py-3.5 text-gray-600">
+                                    {{ complaint[2] }}
+                                </td>
+
+
+                                <!-- Priority -->
+                                <td class="px-5 py-3.5">
+
+                                    {% if complaint[3] == 'High' %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                            High
+                                        </span>
+
+                                    {% elif complaint[3] == 'Medium' %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                            Medium
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                            Low
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- Status -->
+                                <td class="px-5 py-3.5">
+
+                                    {% if complaint[15] %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                            Duplicate
+                                        </span>
+
+                                    {% elif complaint[4] == 'Pending' %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                            Pending
+                                        </span>
+
+                                    {% elif complaint[4] == 'Assigned' %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                            Assigned
+                                        </span>
+
+                                    {% elif complaint[4] == 'Inspection' %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                            Inspection
+                                        </span>
+
+                                    {% elif complaint[4] == 'Maintenance' %}
+
+                                        {% if complaint[12] == 'Completed' and complaint[13] == 'Pending' %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            <i class="fas fa-clock mr-1"></i>Work Done (Pending Review)
+                                        </span>
+                                        {% else %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                            Maintenance
+                                        </span>
+                                        {% endif %}
+
+                                    {% elif complaint[4] == 'Completed' %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                            Completed
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                            {{ complaint[4] }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- Created By -->
+                                <td class="px-5 py-3.5 text-gray-600">
+
+                                    {{ complaint[6] }}
+                                    {{ complaint[7] }}
+
+                                </td>
+
+
+                                <!-- Date -->
+                                <td class="px-5 py-3.5 text-gray-500">
+
+                                    {{ complaint[8].strftime('%Y-%m-%d') if complaint[8] else '-' }}
+
+                                </td>
+                                <!-- Action -->
+                                <td class="px-5 py-3.5">
+                                    {% if complaint[15] %}
+                                        <!-- Linked Duplicate (No independent assignment) -->
+                                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200" title="Linked to Main Complaint #{{ complaint[16] }}. Resolved with main complaint.">
+                                            <i class="fas fa-link text-amber-600"></i>
+                                            <span>Linked to #{{ complaint[16] }}</span>
+                                        </span>
+
+                                    {% elif complaint[12] == 'Completed'
+                                          and complaint[13] == 'Pending' %}
+                                        <!-- Verify Completed Work -->
+                                        <a href="{{ url_for(
+                                            'department_head_verify_work',
+                                            complaint_id=complaint[0]
+                                        ) }}"
+                                           class="inline-flex items-center gap-1 text-green-600 hover:text-green-800 font-medium"
+                                           title="Verify Completed Work">
+
+                                            <i class="fas fa-clipboard-check"></i>
+
+                                            <span class="hidden xl:inline">
+                                                Verify Work
+                                            </span>
+
+                                        </a>
+
+                                    {% elif complaint[9] %}
+
+                                        <!-- Engineer Assigned -->
+
+                                        <a href="{{ url_for(
+                                            'department_head_work_details',
+                                            complaint_id=complaint[0]
+                                        ) }}"
+                                           class="inline-flex items-center gap-1 text-green-600 hover:text-green-800 font-medium"
+                                           title="View Engineer">
+
+                                            <i class="fas fa-user-check"></i>
+
+                                            <span class="hidden xl:inline">
+                                                Engineer
+                                            </span>
+
+                                        </a>
+
+                                    {% elif complaint[10] %}
+
+                                        <!-- Maintenance Worker Assigned -->
+
+                                        <a href="{{ url_for(
+                                            'department_head_work_details',
+                                            complaint_id=complaint[0]
+                                        ) }}"
+                                           class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                                           title="View Worker">
+
+                                            <i class="fas fa-tools"></i>
+
+                                            <span class="hidden xl:inline">
+                                                Worker
+                                            </span>
+
+                                        </a>
+
+                                    {% else %}
+
+                                        <!-- Assign Work -->
+
+                                        <a href="{{ url_for(
+                                            'department_head_assign_work',
+                                            complaint_id=complaint[0]
+                                        ) }}"
+                                           class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                                           title="Assign Work">
+
+                                            <i class="fas fa-tasks"></i>
+
+                                            <span>Assign Work</span>
+
+                                        </a>
+
+                                    {% endif %}
+
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8"
+                                    class="px-5 py-10 text-center text-gray-500">
+                                    <div class="flex flex-col items-center">
+                                        <i class="fas fa-clipboard-list text-3xl mb-3 text-gray-300"></i>
+                                        <p class="font-medium">
+                                            No verified complaints found
+                                        </p>
+                                        <p class="text-sm mt-1">There are currently no verified complaints under your department.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

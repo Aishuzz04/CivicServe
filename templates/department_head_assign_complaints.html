@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Work | Department Head</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+<div class="flex min-h-screen overflow-x-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Department Head</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('department_head_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('department_head_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> Complaints
+            </a>
+            <a href="{{ url_for('department_head_assign_complaints') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-tasks w-5"></i> Assign Work
+                {% if need_engineer_count + need_maintenance_count > 0 %}
+                <span class="ml-auto bg-amber-400 text-gray-900 font-bold text-xs px-2 py-0.5 rounded-full">{{ need_engineer_count + need_maintenance_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('department_head_verify_inspections') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-check w-5"></i> Verify Inspections
+            </a>
+            <a href="{{ url_for('department_head_engineers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-hard-hat w-5"></i> Engineers
+            </a>
+            <a href="{{ url_for('department_head_field_workers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users-cog w-5"></i> Field Workers
+            </a>
+            <a href="{{ url_for('department_head_reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i> Reports
+            </a>
+            <a href="{{ url_for('department_head_profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+        </nav>
+        <div class="px-4 py-4 border-t border-blue-900/40">
+            <a href="#" class="flex items-center gap-2 text-sm text-blue-200 hover:text-white transition">
+                <i class="fas fa-question-circle"></i>
+                <div><p class="font-medium">Need Help?</p><p class="text-xs text-blue-300">Contact Administrator</p></div>
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="flex-1 lg:ml-64 min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ease-in-out">
+        <!-- Topbar -->
+        <header class="bg-[#0B1C3D] text-white sticky top-0 z-20 shadow-md">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <button onclick="toggleSidebar()" class="p-2 text-white hover:bg-white/10 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="flex items-center gap-2 border-l border-white/20 pl-4">
+                        <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center font-bold text-white shadow">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-blue-200">{{ department_name }} Head</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 rounded-lg text-sm">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+            <!-- Header Banner with Staff Addition Buttons -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2.5">
+                        <i class="fas fa-tasks text-blue-600"></i>
+                        Complaint Staff & Work Allocation
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Assign field engineers for technical inspections or maintenance personnel for repairs. Register new team members directly if additional hands are required.
+                    </p>
+                </div>
+                <!-- Quick Add Staff Buttons -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button type="button" onclick="openAddEngineerModal()" class="px-4 py-2.5 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                        <i class="fas fa-user-plus"></i> Add Engineer
+                    </button>
+                    <button type="button" onclick="openAddWorkerModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                        <i class="fas fa-user-plus"></i> Add Maintenance Staff
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif category == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas {% if category == 'success' %}fa-check-circle text-emerald-500{% elif category == 'info' %}fa-info-circle text-blue-500{% else %}fa-exclamation-circle text-red-500{% endif %} text-base"></i>
+                                    <span>{{ message | safe }}</span>
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-xl border border-cyan-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-cyan-700 uppercase tracking-wider">Needing Inspection</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ need_engineer_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Awaiting Engineer assignment</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-purple-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-purple-700 uppercase tracking-wider">Needing Maintenance</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ need_maintenance_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Authorized for repair crew</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-blue-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-blue-700 uppercase tracking-wider">Currently Assigned</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ assigned_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Work actively under way</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Department Staff</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ total_engineers_count + total_workers_count }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ total_engineers_count }} Engineers · {{ total_workers_count }} Maintenance</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-2" id="filterTabs">
+                    <button onclick="setFilter('need_engineer')" id="tab-need_engineer" class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 bg-blue-600 text-white shadow-sm">
+                        <i class="fas fa-hard-hat"></i> Needs Engineer
+                        <span class="bg-white text-blue-800 font-bold text-xs px-2 py-0.5 rounded-full">{{ need_engineer_count }}</span>
+                    </button>
+                    <button onclick="setFilter('need_maintenance')" id="tab-need_maintenance" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2">
+                        <i class="fas fa-wrench"></i> Needs Maintenance
+                        <span class="bg-gray-200 text-gray-700 font-bold text-xs px-2 py-0.5 rounded-full">{{ need_maintenance_count }}</span>
+                    </button>
+                    <button onclick="setFilter('assigned')" id="tab-assigned" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i> Assigned
+                        <span class="bg-gray-200 text-gray-700 font-bold text-xs px-2 py-0.5 rounded-full">{{ assigned_count }}</span>
+                    </button>
+                    <button onclick="setFilter('all')" id="tab-all" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2">
+                        <i class="fas fa-list"></i> All ({{ total_complaints_count }})
+                    </button>
+                </div>
+
+                <div class="relative w-full md:w-72">
+                    <i class="fas fa-search absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                    <input type="text" id="complaintSearch" onkeyup="filterComplaints()" placeholder="Search ID, title, location..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+            </div>
+
+            <!-- Complaints Assignment List -->
+            <div id="complaintsContainer" class="space-y-4">
+                {% if complaints %}
+                    {% for c in complaints %}
+                    <div class="complaint-card bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition hover:shadow-md"
+                         data-stage="{{ c.stage }}"
+                         data-search="#C{{ c.complaint_id }} {{ c.title | lower }} {{ c.category | lower }} {{ c.location | lower }} {{ (c.engineer_name or '') | lower }} {{ (c.maintenance_name or '') | lower }}">
+                        
+                        <div class="p-5 sm:p-6">
+                            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                                
+                                <!-- Complaint Information -->
+                                <div class="flex-1 space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg font-mono border border-blue-100">
+                                            #C{{ c.complaint_id }}
+                                        </span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                            {{ c.category }}
+                                        </span>
+                                        <!-- Priority Badge -->
+                                        {% if c.priority == 'High' %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> High Priority
+                                        </span>
+                                        {% elif c.priority == 'Medium' %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Medium Priority
+                                        </span>
+                                        {% else %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Low Priority
+                                        </span>
+                                        {% endif %}
+
+                                        <!-- Status Badge -->
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                            {% if c.status == 'Pending' %}bg-orange-100 text-orange-800
+                                            {% elif c.status == 'Assigned' %}bg-blue-100 text-blue-800
+                                            {% elif c.status == 'Inspection' %}bg-cyan-100 text-cyan-800
+                                            {% elif c.status == 'Maintenance' %}bg-purple-100 text-purple-800
+                                            {% elif c.status == 'Completed' %}bg-green-100 text-green-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {{ c.status }}
+                                        </span>
+                                    </div>
+
+                                    <h3 class="text-base font-bold text-gray-900">{{ c.title }}</h3>
+                                    
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fas fa-map-marker-alt text-red-500"></i> {{ c.location }}
+                                        </span>
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="far fa-calendar-alt text-gray-400"></i> Reported: {{ c.created_at.strftime('%Y-%m-%d') if c.created_at else '-' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- If Inspected / Under Repair, show brief findings or recommendation -->
+                                    {% if c.recommendation %}
+                                    <div class="mt-2 p-2.5 bg-purple-50/70 border border-purple-100 rounded-lg text-xs text-purple-900 flex items-start gap-2">
+                                        <i class="fas fa-info-circle text-purple-600 mt-0.5"></i>
+                                        <div>
+                                            <span class="font-semibold">Inspection Recommendation:</span> {{ c.recommendation }}
+                                            {% if c.required_materials %}
+                                            <span class="block text-purple-700 mt-0.5"><span class="font-semibold">Materials:</span> {{ c.required_materials }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Assignment Controls & Staff Column -->
+                                <div class="lg:w-80 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 lg:pl-5 pt-3 lg:pt-0">
+                                    
+                                    {% if c.stage == 'need_engineer' %}
+                                        <!-- Assign Engineer Form -->
+                                        <div class="bg-cyan-50/60 p-4 rounded-xl border border-cyan-100">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p class="text-xs font-bold text-cyan-800 uppercase tracking-wide flex items-center gap-1">
+                                                    <i class="fas fa-hard-hat text-cyan-600"></i> Assign Engineer
+                                                </p>
+                                                <button type="button" onclick="openAddEngineerModal()" class="text-xs font-semibold text-cyan-700 hover:text-cyan-900 underline">
+                                                    + Add New
+                                                </button>
+                                            </div>
+                                            {% if engineers %}
+                                            <form method="POST" action="{{ url_for('department_head_assign_complaints') }}" class="space-y-2">
+                                                <input type="hidden" name="action" value="assign_engineer">
+                                                <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                                <select name="user_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-cyan-500 bg-white">
+                                                    <option value="">-- Choose Field Engineer --</option>
+                                                    {% for eng in engineers %}
+                                                    <option value="{{ eng.user_id }}">
+                                                        {{ eng.name }} ({{ eng.active_jobs }} active jobs)
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="submit" class="w-full py-2 px-3 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5">
+                                                    <i class="fas fa-check"></i> Assign for Inspection
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <div class="text-center py-2">
+                                                <p class="text-xs text-amber-700 font-medium mb-1.5">No engineers in department.</p>
+                                                <button type="button" onclick="openAddEngineerModal()" class="px-3 py-1.5 bg-cyan-700 text-white rounded-lg text-xs font-semibold">
+                                                    + Register Engineer
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                    {% elif c.stage == 'need_maintenance' %}
+                                        <!-- Assign Maintenance Form -->
+                                        <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-100">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p class="text-xs font-bold text-purple-800 uppercase tracking-wide flex items-center gap-1">
+                                                    <i class="fas fa-wrench text-purple-600"></i> Assign Maintenance Team
+                                                </p>
+                                                <button type="button" onclick="openAddWorkerModal()" class="text-xs font-semibold text-purple-700 hover:text-purple-900 underline">
+                                                    + Add New
+                                                </button>
+                                            </div>
+                                            {% if field_workers %}
+                                            <form method="POST" action="{{ url_for('department_head_assign_complaints') }}" class="space-y-2">
+                                                <input type="hidden" name="action" value="assign_maintenance">
+                                                <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                                <select name="user_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 bg-white">
+                                                    <option value="">-- Choose Field Worker / Crew --</option>
+                                                    {% for w in field_workers %}
+                                                    <option value="{{ w.user_id }}">
+                                                        {{ w.name }} ({{ w.active_tasks }} active tasks)
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="submit" class="w-full py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5">
+                                                    <i class="fas fa-wrench"></i> Assign for Repair
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <div class="text-center py-2">
+                                                <p class="text-xs text-amber-700 font-medium mb-1.5">No maintenance workers in department.</p>
+                                                <button type="button" onclick="openAddWorkerModal()" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold">
+                                                    + Register Worker
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                    {% else %}
+                                        <!-- Currently Assigned Info -->
+                                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs space-y-2">
+                                            <p class="font-bold text-gray-500 uppercase tracking-wider">Assigned Staff</p>
+                                            {% if c.engineer_name %}
+                                            <div class="flex items-center gap-2 text-cyan-800 font-semibold">
+                                                <i class="fas fa-hard-hat text-cyan-600"></i>
+                                                <span>Engineer: {{ c.engineer_name }}</span>
+                                            </div>
+                                            {% endif %}
+                                            {% if c.maintenance_name %}
+                                            <div class="flex items-center gap-2 text-purple-800 font-semibold">
+                                                <i class="fas fa-tools text-purple-600"></i>
+                                                <span>Maintenance: {{ c.maintenance_name }}</span>
+                                            </div>
+                                            {% endif %}
+                                            <a href="{{ url_for('department_head_work_details', complaint_id=c.complaint_id) }}" class="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium pt-1">
+                                                <i class="fas fa-external-link-alt"></i> View Full Details
+                                            </a>
+                                        </div>
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Empty state -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+                        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800">No Department Complaints Found</h4>
+                        <p class="text-sm text-gray-500 max-w-md mx-auto mt-1">
+                            Verified citizen complaints in {{ department_name }} will show up here for engineer inspection and maintenance assignment.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div id="noMatchState" class="hidden bg-white rounded-xl border border-gray-200 p-10 text-center shadow-sm mt-4">
+                <i class="fas fa-search text-3xl text-gray-300 mb-2"></i>
+                <p class="font-semibold text-gray-700 text-sm">No matching complaints found</p>
+                <p class="text-xs text-gray-400 mt-1">Try switching tabs or adjusting search query.</p>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Add Engineer Modal -->
+<div id="addEngineerModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-hard-hat text-cyan-600"></i> Add New Field Engineer
+            </h3>
+            <button onclick="closeAddEngineerModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_engineer') }}" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="first_name" required placeholder="e.g. Ramesh" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Last Name</label>
+                    <input type="text" name="last_name" placeholder="e.g. Kumar" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Email Address <span class="text-red-500">*</span></label>
+                <input type="email" name="email" required placeholder="e.g. engineer.ramesh@civicserve.gov"
+                       pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                       title="Please enter a valid email address (e.g. name@example.com)"
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                <input type="tel" name="phone" placeholder="e.g. 9876543210"
+                       pattern="[0-9]{10}" maxlength="10"
+                       title="Please enter a 10-digit mobile number"
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Initial Temporary Password <span class="text-red-500">*</span></label>
+                <input type="text" name="temporary_password" required value="Engineer@2026" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono text-cyan-800 bg-cyan-50/50 focus:ring-2 focus:ring-cyan-500">
+                <p class="text-xs text-gray-400 mt-1">Engineer will be prompted to reset this password upon initial login.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button" onclick="closeAddEngineerModal()" class="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white rounded-lg text-sm font-semibold shadow-sm transition">
+                    Register Engineer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Maintenance Staff Modal -->
+<div id="addWorkerModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-users-cog text-blue-600"></i> Add New Maintenance Worker
+            </h3>
+            <button onclick="closeAddWorkerModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_field_worker') }}" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="first_name" required placeholder="e.g. Suresh" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Last Name</label>
+                    <input type="text" name="last_name" placeholder="e.g. Patel" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Email Address <span class="text-red-500">*</span></label>
+                <input type="email" name="email" required placeholder="e.g. worker.suresh@civicserve.gov"
+                       pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                       title="Please enter a valid email address (e.g. name@example.com)"
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                <input type="tel" name="phone" placeholder="e.g. 9812345678"
+                       pattern="[0-9]{10}" maxlength="10"
+                       title="Please enter a 10-digit mobile number"
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Initial Temporary Password <span class="text-red-500">*</span></label>
+                <input type="text" name="temporary_password" required value="Maintenance@2026" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono text-blue-800 bg-blue-50/50 focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-400 mt-1">Worker will be prompted to reset this password upon initial login.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button" onclick="closeAddWorkerModal()" class="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition">
+                    Register Worker
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentFilter = '{{ "need_engineer" if need_engineer_count > 0 else ("need_maintenance" if need_maintenance_count > 0 else "all") }}';
+
+function setFilter(filter) {
+    currentFilter = filter;
+    
+    const tabs = ['need_engineer', 'need_maintenance', 'assigned', 'all'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (!btn) return;
+        if (t === filter) {
+            btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 bg-blue-600 text-white shadow-sm";
+        } else {
+            btn.className = "px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition flex items-center gap-2";
+        }
+    });
+
+    filterComplaints();
+}
+
+function filterComplaints() {
+    const searchVal = document.getElementById('complaintSearch').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.complaint-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        const cardStage = card.getAttribute('data-stage');
+        const cardSearch = card.getAttribute('data-search') || '';
+
+        const stageMatch = (currentFilter === 'all') || (cardStage === currentFilter);
+        const searchMatch = !searchVal || cardSearch.includes(searchVal);
+
+        if (stageMatch && searchMatch) {
+            card.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    const noMatch = document.getElementById('noMatchState');
+    if (noMatch) {
+        if (visibleCount === 0 && cards.length > 0) {
+            noMatch.classList.remove('hidden');
+        } else {
+            noMatch.classList.add('hidden');
+        }
+    }
+}
+
+function openAddEngineerModal() {
+    document.getElementById('addEngineerModal').classList.remove('hidden');
+}
+
+function closeAddEngineerModal() {
+    document.getElementById('addEngineerModal').classList.add('hidden');
+}
+
+function openAddWorkerModal() {
+    document.getElementById('addWorkerModal').classList.remove('hidden');
+}
+
+function closeAddWorkerModal() {
+    document.getElementById('addWorkerModal').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setFilter(currentFilter);
+});
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

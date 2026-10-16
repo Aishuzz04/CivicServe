@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspection Reports | Engineer Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Engineer Portal</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('engineer_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('engineer_assigned') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> My Assignments
+            </a>
+            <a href="{{ url_for('engineer_inspection') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search-location w-5"></i> Inspections
+            </a>
+            <a href="{{ url_for('engineer_inspection_reports') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-file-waveform w-5"></i> Inspection Reports
+            </a>
+        </nav>
+
+        <div class="px-3 py-4 border-t border-blue-900/40">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="text-lg font-semibold text-gray-800">Inspection Reports</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium text-gray-800">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-gray-500">Field Engineer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl flex items-center justify-between text-sm {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas {% if category == 'error' %}fa-circle-exclamation text-red-500{% elif category == 'success' %}fa-circle-check text-emerald-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                                    <span>{{ message|safe }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Title & Context -->
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Field Inspection Reports</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">All engineering reports submitted to supervisors and maintenance crews</p>
+                </div>
+                <a href="{{ url_for('engineer_assigned') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+                    <i class="fas fa-plus"></i> New Inspection
+                </a>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-xl font-bold">
+                        <i class="fas fa-file-waveform"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Reports Filed</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-0.5">{{ total_reports }}</p>
+                        <p class="text-xs text-purple-600 mt-1">Saved in database</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600 text-xl font-bold">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">High / Critical Issues</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-0.5">{{ high_count }}</p>
+                        <p class="text-xs text-red-500 mt-1">Requiring rapid repair</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-xl font-bold">
+                        <i class="fas fa-indian-rupee-sign"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Estimated Cost</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-0.5">₹{{ "{:,.2f}".format(total_cost) }}</p>
+                        <p class="text-xs text-emerald-600 mt-1">Across all inspections</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <form method="GET" action="{{ url_for('engineer_inspection_reports') }}" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-3">
+                <div class="flex-1 relative">
+                    <i class="fas fa-search absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                    <input type="text" name="search" value="{{ search_query|default('') }}" placeholder="Search by Complaint ID, title, findings or recommendation..."
+                        class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <select name="severity" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">All Severities</option>
+                    <option value="Critical" {% if current_severity == 'Critical' %}selected{% endif %}>Critical</option>
+                    <option value="High" {% if current_severity == 'High' %}selected{% endif %}>High</option>
+                    <option value="Medium" {% if current_severity == 'Medium' %}selected{% endif %}>Medium</option>
+                    <option value="Low" {% if current_severity == 'Low' %}selected{% endif %}>Low</option>
+                </select>
+
+                <button type="submit" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <i class="fas fa-filter"></i> Apply Filter
+                </button>
+
+                {% if search_query or current_severity %}
+                <a href="{{ url_for('engineer_inspection_reports') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1">
+                    <i class="fas fa-rotate-left"></i> Clear
+                </a>
+                {% endif %}
+            </form>
+
+            <!-- Reports List Table -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="text-left px-5 py-3.5 font-semibold">Report #</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Complaint</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Category</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Inspection Date</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Severity</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Recommended Action</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Est. Cost</th>
+                                <th class="text-center px-5 py-3.5 font-semibold">Photo</th>
+                                <th class="text-center px-5 py-3.5 font-semibold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% if reports %}
+                                {% for r in reports %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-5 py-4 font-mono font-bold text-purple-700 text-xs">
+                                        REP-{{ r.report_id }}
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <a href="{{ url_for('engineer_view_complaint', complaint_id=r.complaint_id) }}" class="font-bold text-gray-900 hover:text-blue-600">
+                                            #{{ r.complaint_id }} - {{ r.title }}
+                                        </a>
+                                        <p class="text-xs text-gray-500 mt-0.5">
+                                            <i class="fas fa-location-dot text-red-400 mr-1 text-[10px]"></i>{{ r.location }}
+                                        </p>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                                            {{ r.category or 'General' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-4 font-mono text-xs text-gray-600">
+                                        {{ r.inspection_date }}
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        {% if r.severity == 'Critical' or r.severity == 'High' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">{{ r.severity }}</span>
+                                        {% elif r.severity == 'Medium' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Medium</span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">{{ r.severity or 'Low' }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-4 text-xs font-medium text-gray-800 max-w-xs">
+                                        <p class="truncate" title="{{ r.recommendation }}">{{ r.recommendation or '—' }}</p>
+                                        <p class="text-[11px] text-gray-400 truncate mt-0.5" title="{{ r.findings }}">{{ r.findings }}</p>
+                                    </td>
+                                    <td class="px-5 py-4 font-mono text-xs font-semibold text-gray-900">
+                                        {% if r.estimated_cost is not none %}
+                                            ₹{{ "{:,.2f}".format(r.estimated_cost) }}
+                                        {% else %}
+                                            ₹0.00
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-4 text-center">
+                                        {% if r.inspection_image %}
+                                            <img src="/{{ r.inspection_image }}"
+                                                 alt="Report photo"
+                                                 class="w-9 h-9 object-cover rounded-lg border border-gray-200 mx-auto cursor-pointer hover:opacity-80"
+                                                 onclick="window.open(this.src, '_blank')"
+                                                 title="Click to view full photo">
+                                        {% else %}
+                                            <span class="text-xs text-gray-400">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-4 text-center">
+                                        <a href="{{ url_for('engineer_view_complaint', complaint_id=r.complaint_id) }}"
+                                           class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition"
+                                           title="View or Update Report">
+                                            <i class="fas fa-eye"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" class="px-5 py-16 text-center text-gray-500">
+                                        <i class="fas fa-file-waveform text-5xl text-gray-300 mb-3 block"></i>
+                                        <p class="font-semibold text-base text-gray-700">No inspection reports found</p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {% if search_query or current_severity %}
+                                                Try clearing your filters or search query.
+                                            {% else %}
+                                                You haven't filed any inspection reports yet. Open your assigned complaints to record your first on-site inspection.
+                                            {% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

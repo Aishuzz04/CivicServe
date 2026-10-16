@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Profile | CivicServe Maintenance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Maintenance Portal</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('maintenance_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('maintenance_work_orders') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> My Work Orders
+            </a>
+            <a href="{{ url_for('maintenance_work_orders', status='In Progress') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-spinner w-5"></i> In Progress
+            </a>
+            <a href="{{ url_for('maintenance_work_orders', status='Completed') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-check-circle w-5"></i> Completed
+            </a>
+            <a href="{{ url_for('maintenance_profile') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/40">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800 leading-tight">Staff Profile</h2>
+                        <p class="text-xs text-gray-500 hidden sm:block">Manage your account information and preferences</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-green-600 text-sm"></i>
+                        </div>
+                        <div class="hidden sm:block text-left">
+                            <p class="text-xs font-semibold text-gray-800 leading-tight">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-[10px] text-gray-500">Maintenance Staff</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl flex items-center justify-between text-sm {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas {% if category == 'error' %}fa-circle-exclamation text-red-500{% elif category == 'success' %}fa-circle-check text-emerald-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Profile Header Card -->
+            <div class="bg-gradient-to-r from-[#0B1C3D] to-blue-900 rounded-2xl p-6 text-white shadow-md mb-8">
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                    <div class="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center flex-shrink-0 shadow-inner">
+                        <i class="fas fa-tools text-3xl text-blue-300"></i>
+                    </div>
+                    <div class="flex-1 text-center sm:text-left">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <h2 class="text-2xl font-bold">{{ profile.first_name }} {{ profile.last_name }}</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/30 text-blue-200 border border-blue-400/30 self-center sm:self-auto">
+                                {{ profile.role }}
+                            </span>
+                        </div>
+                        <p class="text-blue-200 text-sm mt-1 flex items-center justify-center sm:justify-start gap-2">
+                            <i class="fas fa-building text-xs"></i> {{ profile.department_name }}
+                            <span class="text-blue-400">•</span>
+                            <i class="fas fa-id-badge text-xs"></i> Staff ID #{{ profile.user_id }}
+                        </p>
+                        <p class="text-blue-300/80 text-xs mt-2 flex items-center justify-center sm:justify-start gap-4">
+                            <span><i class="fas fa-envelope mr-1"></i> {{ profile.email }}</span>
+                            {% if profile.phone %}
+                            <span><i class="fas fa-phone mr-1"></i> {{ profile.phone }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="text-right hidden md:block">
+                        <span class="inline-block px-3 py-1 bg-green-500/20 text-green-300 text-xs font-medium rounded-full border border-green-500/30">
+                            <i class="fas fa-circle text-[8px] mr-1"></i> Account Active
+                        </span>
+                        <p class="text-[11px] text-blue-300 mt-2">Member since {{ profile.created_at.strftime('%b %Y') if profile.created_at else 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <!-- Total Tasks -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Work Orders</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-2">{{ total_tasks }}</p>
+                    <p class="text-xs text-gray-400 mt-1">All assigned jobs to date</p>
+                </div>
+
+                <!-- In Progress -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <p class="text-xs font-medium text-orange-600 uppercase tracking-wider">Active In Progress</p>
+                    <p class="text-3xl font-bold text-orange-600 mt-2">{{ in_progress_tasks }}</p>
+                    <p class="text-xs text-gray-400 mt-1">Currently being serviced</p>
+                </div>
+
+                <!-- Completed -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <p class="text-xs font-medium text-green-600 uppercase tracking-wider">Completed Tasks</p>
+                    <p class="text-3xl font-bold text-green-600 mt-2">{{ completed_tasks }}</p>
+                    <p class="text-xs text-gray-400 mt-1">Successfully resolved</p>
+                </div>
+
+                <!-- Resolution Rate -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <p class="text-xs font-medium text-blue-600 uppercase tracking-wider">Completion Rate</p>
+                    <p class="text-3xl font-bold text-blue-700 mt-2">{{ resolution_rate }}%</p>
+                    <div class="w-full bg-gray-100 h-2 rounded-full mt-2 overflow-hidden">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: {{ resolution_rate }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forms Grid: Contact Details & Password Change -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+
+                <!-- Contact & Location Info -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div class="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i class="fas fa-address-card"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Contact & Service Details</h3>
+                            <p class="text-xs text-gray-500">Update your reachable contact number and base area</p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('maintenance_profile') }}" class="space-y-4">
+                        <input type="hidden" name="action" value="update_details">
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
+                                <input type="text" value="{{ profile.first_name }}" disabled class="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-500 cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
+                                <input type="text" value="{{ profile.last_name }}" disabled class="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-500 cursor-not-allowed">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Official Email</label>
+                            <input type="email" value="{{ profile.email }}" disabled class="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-500 cursor-not-allowed">
+                            <p class="text-[11px] text-gray-400 mt-1">Managed by Department Administrator</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Department</label>
+                            <input type="text" value="{{ profile.department_name }}" disabled class="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-500 cursor-not-allowed">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Contact Phone</label>
+                            <div class="relative">
+                                <i class="fas fa-phone absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" name="phone" value="{{ profile.phone }}" placeholder="e.g. +91 9876543210" class="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Base / Service Address</label>
+                            <div class="relative">
+                                <i class="fas fa-location-dot absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" name="address" value="{{ profile.address }}" placeholder="e.g. Sector 4 Municipal Workshop" class="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+                                <i class="fas fa-floppy-disk mr-1.5"></i> Save Contact Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Password & Security -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div class="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+                        <div class="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Security & Password</h3>
+                            <p class="text-xs text-gray-500">Update your account login password</p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('maintenance_profile') }}" class="space-y-4">
+                        <input type="hidden" name="action" value="change_password">
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Current Password</label>
+                            <div class="relative">
+                                <i class="fas fa-key absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="password" name="current_password" required placeholder="Enter current password" class="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">New Password</label>
+                            <div class="relative">
+                                <i class="fas fa-shield-alt absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="password" name="new_password" required minlength="6" placeholder="At least 6 characters" class="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Confirm New Password</label>
+                            <div class="relative">
+                                <i class="fas fa-shield-alt absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="password" name="confirm_password" required minlength="6" placeholder="Repeat new password" class="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-100 text-[11px] text-gray-500 space-y-1">
+                            <p class="font-medium text-gray-700"><i class="fas fa-info-circle text-blue-500 mr-1"></i> Security Note:</p>
+                            <p>Use a combination of letters, numbers, and symbols. Once changed, use your new password for all subsequent logins.</p>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+                                <i class="fas fa-shield-check mr-1.5"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Completed Jobs Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">Recently Completed Work Orders</h3>
+                        <p class="text-xs text-gray-500">Field work orders you have successfully finished</p>
+                    </div>
+                    <a href="{{ url_for('maintenance_work_orders', status='Completed') }}" class="text-xs font-medium text-blue-600 hover:underline">
+                        View all completed →
+                    </a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
+                            <tr>
+                                <th class="text-left px-5 py-3 font-medium">Order ID</th>
+                                <th class="text-left px-5 py-3 font-medium">Title</th>
+                                <th class="text-left px-5 py-3 font-medium">Location</th>
+                                <th class="text-left px-5 py-3 font-medium">Category</th>
+                                <th class="text-left px-5 py-3 font-medium">Completed On</th>
+                                <th class="text-left px-5 py-3 font-medium">Work Summary</th>
+                                <th class="text-left px-5 py-3 font-medium">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-xs">
+                            {% if recent_completed %}
+                                {% for j in recent_completed %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-5 py-3.5 font-bold text-blue-700">#{{ j.complaint_id }}</td>
+                                    <td class="px-5 py-3.5 font-semibold text-gray-800">{{ j.title }}</td>
+                                    <td class="px-5 py-3.5 text-gray-600">
+                                        <i class="fas fa-location-dot text-gray-400 mr-1"></i>{{ j.location }}
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">{{ j.category }}</span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-green-700 font-medium">
+                                        {{ j.completion_date or '—' }}
+                                    </td>
+                                    <td class="px-5 py-3.5 text-gray-600 max-w-xs truncate">
+                                        {{ j.work_description or 'Repairs completed.' }}
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <a href="{{ url_for('maintenance_view', complaint_id=j.complaint_id) }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                            View Report
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="px-5 py-8 text-center text-gray-400">
+                                        No completed jobs yet. Work orders you complete will appear here.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

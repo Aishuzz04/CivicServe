@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Login | CivicServe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; }
+
+        /* Full-bleed background – no gaps */
+        .page-bg {
+            background-image: url("{{ url_for('static', filename='images/city-background.jpg') }}");
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="page-bg">
+
+<div class="min-h-screen w-full relative flex flex-col lg:flex-row">
+
+    <!-- Soft overlay so text stays readable -->
+    <div class="absolute inset-0 bg-white/10 pointer-events-none"></div>
+
+    <!-- ===================== LEFT SIDE ===================== -->
+    <div class="relative z-10 w-full lg:w-[55%] flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-[40vh] lg:min-h-screen">
+
+        <!-- Logo (top-left) -->
+        <div class="flex items-center gap-3">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}"
+                 alt="CivicServe Logo"
+                 class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md">
+            <div class="hidden sm:block">
+                <!-- optional text next to logo if needed -->
+            </div>
+        </div>
+
+        <!-- Welcome text (middle-left) -->
+        <div class="my-auto max-w-md">
+            <h1 class="text-4xl sm:text-5xl font-bold text-[#0A1F3D] leading-tight">
+                Welcome Back!
+            </h1>
+            <div class="w-14 h-1 bg-blue-600 rounded-full mt-4 mb-5"></div>
+            <p class="text-[#3A5A7A] text-base sm:text-lg leading-relaxed">
+                Login to continue and manage<br class="hidden sm:inline">
+                your complaints easily.
+            </p>
+        </div>
+
+        <!-- Spacer so text sits nicely -->
+        <div class="h-8 lg:h-16"></div>
+    </div>
+
+    <!-- ===================== RIGHT SIDE – LOGIN CARD ===================== -->
+    <div class="relative z-10 w-full lg:w-[45%] flex items-center justify-center p-6 sm:p-10 min-h-[60vh] lg:min-h-screen">
+        <div class="w-full max-w-[400px]">
+
+            <!-- Card -->
+            <div class="bg-white rounded-2xl shadow-xl border border-white/60 p-8 sm:p-10">
+
+                <!-- Avatar -->
+                <div class="flex justify-center mb-4">
+                    <div class="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center">
+                        <i class="fas fa-user text-2xl text-blue-600"></i>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-1">Citizen Login</h2>
+                <p class="text-center text-sm text-gray-500 mb-6 leading-relaxed">
+                    Access your account to manage complaints and<br class="hidden sm:inline"> track updates.
+                </p>
+
+                {% if error %}
+                <div class="mb-5 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form action="{{ url_for('login') }}" method="POST" class="space-y-5">
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                                <i class="fas fa-envelope text-sm"></i>
+                            </span>
+                            <input type="email" name="email" value="{{ email|default('') }}"
+                                   placeholder="Enter your email" required
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm
+                                          focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
+                                          transition bg-gray-50/60 hover:bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                                <i class="fas fa-lock text-sm"></i>
+                            </span>
+                            <input type="password" name="password" id="password"
+                                   placeholder="Enter your password" required
+                                   class="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl text-sm
+                                          focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
+                                          transition bg-gray-50/60 hover:bg-white">
+                            <button type="button" onclick="togglePassword()"
+                                    class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Forgot Password -->
+                    <div class="text-right -mt-1">
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                            Forgot Password?
+                        </a>
+                    </div>
+
+                    <!-- Login Button -->
+                    <button type="submit"
+                            class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold
+                                   rounded-xl transition shadow-md shadow-blue-200/50 flex items-center justify-center gap-2">
+                        <i class="fas fa-user"></i>
+                        Login
+                    </button>
+                </form>
+
+                <!-- Register -->
+                <p class="text-center text-sm text-gray-500 mt-6">
+                    Don’t have an account?<br>
+                    <a href="{{ url_for('register') }}" class="text-blue-600 font-medium hover:underline">
+                        Register here
+                    </a>
+                </p>
+            </div>
+
+            <!-- Back to Home (optional) -->
+            <div class="text-center mt-5">
+                <a href="{{ url_for('home') }}" class="text-sm text-gray-500 hover:text-blue-600 transition">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const input = document.getElementById('password');
+    const icon = document.getElementById('toggleIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+</body>
+</html>

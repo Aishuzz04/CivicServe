@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to CivicServe | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Ambient background glow */
+        .ambient-glow-1 {
+            background: radial-gradient(circle, {{ meta.glow_color or 'rgba(59, 130, 246, 0.35)' }} 0%, rgba(11, 28, 61, 0) 70%);
+        }
+        .ambient-glow-2 {
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.25) 0%, rgba(11, 28, 61, 0) 70%);
+        }
+
+        /* Modern subtle grid overlay */
+        .bg-tech-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        }
+
+        /* Animations */
+        @keyframes cardReveal {
+            from {
+                opacity: 0;
+                transform: translateY(22px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes pulseRing {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 {{ meta.glow_color or 'rgba(59, 130, 246, 0.5)' }};
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 16px rgba(59, 130, 246, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .animate-card {
+            animation: cardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .pulse-ring {
+            animation: pulseRing 3s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+
+        .float-gentle {
+            animation: floatSlow 6s ease-in-out infinite;
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 30px 60px -12px rgba(0, 0, 0, 0.7),
+                0 18px 36px -18px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-subcard {
+            background: rgba(255, 255, 255, 0.035);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.25s ease;
+        }
+        .glass-subcard:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[#070E1A] text-slate-100 flex flex-col justify-between relative overflow-x-hidden select-none">
+
+    <!-- Background Layer with City Silhouette + Ambient Glows + Tech Grid -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <!-- City skyline photo overlay with subtle dark blend -->
+        <div class="absolute inset-0 bg-cover bg-center opacity-[0.07] mix-blend-luminosity filter blur-[0.5px]"
+             style="background-image: url('{{ url_for('static', filename='images/city-background.jpg') }}');"></div>
+
+        <!-- Ambient Glow Orbs -->
+        <div class="ambient-glow-1 absolute -top-40 -left-40 w-[650px] h-[650px] rounded-full blur-[130px] opacity-80"></div>
+        <div class="ambient-glow-2 absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full blur-[130px] opacity-75"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-blue-900/10 rounded-full blur-[150px]"></div>
+
+        <!-- Tech Grid Overlay -->
+        <div class="absolute inset-0 bg-tech-grid opacity-75"></div>
+
+        <!-- Vignette gradient -->
+        <div class="absolute inset-0 bg-gradient-to-t from-[#070E1A] via-transparent to-[#070E1A]/80"></div>
+    </div>
+
+    <!-- Top Status Navigation Header -->
+    <header class="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-2 flex items-center justify-between">
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 p-0.5 shadow-lg shadow-blue-500/25 flex items-center justify-center">
+                <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-full h-full object-contain rounded-lg">
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-white font-bold tracking-tight text-base sm:text-lg">CivicServe</span>
+                    <span class="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-blue-500/15 text-blue-300 border border-blue-400/25">
+                        Enterprise OS
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Smart Public Infrastructure Management</p>
+            </div>
+        </div>
+
+        <!-- Live Network & Security Badge -->
+        <div class="flex items-center gap-2 sm:gap-4 text-xs">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span class="font-medium tracking-tight">System Online</span>
+            </div>
+            <div class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-slate-400 font-mono text-[11px]" id="live-clock">
+                <i class="far fa-clock text-slate-500"></i>
+                <span id="time-display">--:--:--</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex-1 flex items-center justify-center">
+        
+        <!-- Central Executive Glass Card -->
+        <div class="glass-panel animate-card w-full rounded-3xl p-6 sm:p-10 relative overflow-hidden">
+            
+            <!-- Top Subtle Light Beam -->
+            <div class="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"></div>
+            
+            <!-- Background Radial Glow inside Card -->
+            <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-gradient-to-b from-blue-500/15 to-transparent rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="relative z-10 text-center max-w-2xl mx-auto">
+
+                <!-- Role Emblem / Avatar Badge -->
+                <div class="relative mx-auto mb-6 w-20 h-20 sm:w-22 sm:h-22 float-gentle">
+                    <!-- Glow Behind -->
+                    <div class="absolute inset-0 rounded-2xl bg-gradient-to-tr {{ meta.accent_gradient }} opacity-30 blur-xl"></div>
+                    
+                    <!-- Icon Box -->
+                    <div class="relative w-full h-full rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border border-white/20 shadow-2xl flex items-center justify-center pulse-ring">
+                        <i class="fa-solid {{ meta.icon }} text-3xl sm:text-4xl bg-gradient-to-tr {{ meta.accent_gradient }} bg-clip-text text-transparent"></i>
+                    </div>
+
+                    <!-- Verified Status Checkmark -->
+                    <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center shadow-md shadow-emerald-500/40">
+                        <i class="fa-solid fa-check text-[10px] text-white"></i>
+                    </div>
+                </div>
+
+                <!-- Personalized Time Greeting + Name -->
+                <div class="mb-3">
+                    <p class="text-xs sm:text-sm font-semibold tracking-wider uppercase text-cyan-300/90 mb-1.5 flex items-center justify-center gap-1.5">
+                        <span id="time-greeting">Welcome</span>
+                        <span>•</span>
+                        <span>Authenticated Session</span>
+                    </p>
+                    <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                        Welcome, <span class="bg-gradient-to-r {{ meta.accent_gradient }} bg-clip-text text-transparent">{{ first_name }}</span>!
+                    </h1>
+                </div>
+
+                <!-- Role Title Pill -->
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold {{ meta.badge_classes }} shadow-sm mb-4">
+                    <i class="fa-solid {{ meta.icon }} text-xs"></i>
+                    <span>{{ meta.badge_text }}</span>
+                    <span class="text-white/40">|</span>
+                    <span class="text-white/90 font-medium">{{ meta.portal_title }}</span>
+                </div>
+
+                <!-- Subtitle -->
+                <p class="text-sm sm:text-base text-slate-300/90 leading-relaxed mb-6 max-w-xl mx-auto font-normal">
+                    {{ meta.subtitle }}
+                </p>
+
+                <!-- Role Capabilities Highlights (3 Glass Cards) -->
+                {% if meta.highlights %}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-7 text-left">
+                    {% for hl in meta.highlights %}
+                    <div class="glass-subcard rounded-2xl p-3.5 flex flex-col justify-between">
+                        <div class="flex items-center gap-2.5 mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/10 flex items-center justify-center text-cyan-300 text-sm flex-shrink-0">
+                                <i class="fa-solid {{ hl.icon }}"></i>
+                            </div>
+                            <h4 class="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight">
+                                {{ hl.title }}
+                            </h4>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-snug">
+                            {{ hl.desc }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Dynamic Workspace Preparation / Progress Loading -->
+                <div class="max-w-md mx-auto mb-6 bg-slate-950/40 border border-white/10 rounded-2xl p-4 shadow-inner">
+                    <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                        <span class="flex items-center gap-2 font-medium">
+                            <svg class="animate-spin h-3.5 w-3.5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="status-step-text" class="text-slate-200">Preparing workspace environment…</span>
+                        </span>
+                        <span id="countdown-text" class="font-mono font-semibold text-cyan-300">2.5s</span>
+                    </div>
+
+                    <!-- Progress Bar Track -->
+                    <div class="w-full bg-slate-800/80 rounded-full h-2 overflow-hidden border border-white/5 relative">
+                        <div id="progress-bar" class="h-full rounded-full {{ meta.progress_bar }} shadow-[0_0_12px_rgba(56,189,248,0.5)] transition-all duration-100 ease-linear" style="width: 100%;"></div>
+                    </div>
+
+                    <!-- Step indicators -->
+                    <div class="flex items-center justify-between mt-2.5 text-[10px] text-slate-400 font-mono">
+                        <span id="step-1" class="text-cyan-400 font-semibold"><i class="fas fa-check-circle mr-1"></i>Security Verified</span>
+                        <span id="step-2" class="text-slate-400 transition-colors"><i class="fas fa-circle-notch fa-spin mr-1"></i>Data Sync</span>
+                        <span id="step-3" class="text-slate-500 transition-colors"><i class="far fa-circle mr-1"></i>Dashboard Ready</span>
+                    </div>
+                </div>
+
+                <!-- Action Controls Row -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <!-- Enter Workspace Primary CTA -->
+                    <a href="{{ dashboard_url }}" id="enter-btn"
+                       class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:via-indigo-500 hover:to-blue-600 text-white font-semibold text-sm sm:text-base shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] border border-blue-400/30">
+                        <span>Enter Workspace</span>
+                        <i class="fa-solid fa-arrow-right text-xs transition-transform duration-200 group-hover:translate-x-1"></i>
+                    </a>
+
+                    <!-- Pause / Resume Toggle Button -->
+                    <button type="button" id="toggle-pause-btn"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs sm:text-sm font-medium border border-white/10 transition-all">
+                        <i class="fas fa-pause text-xs" id="pause-icon"></i>
+                        <span id="pause-text">Pause auto-launch</span>
+                    </button>
+                </div>
+
+                <!-- Keyboard Hint -->
+                <p class="text-[11px] text-slate-500 mt-4 flex items-center justify-center gap-1.5 font-mono">
+                    <span>Tip:</span>
+                    <span>Press</span>
+                    <kbd class="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[10px] text-slate-300">Enter ↵</kbd>
+                    <span>to launch instantly</span>
+                </p>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Footer Credentials -->
+    <footer class="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 text-center flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400 border-t border-white/5">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-shield-halved text-cyan-400"></i>
+            <span>Encrypted Session · CivicServe Smart Municipal Core v2.4</span>
+        </div>
+        <div class="flex items-center gap-4 text-slate-400">
+            <span>Logged in as <strong class="text-slate-200">{{ role }}</strong></span>
+            <span>·</span>
+            <a href="{{ url_for('logout') }}" class="text-slate-400 hover:text-white transition underline decoration-dotted">Sign In with different account</a>
+        </div>
+    </footer>
+
+    <!-- Interactive Script -->
+    <script>
+        const targetUrl = "{{ dashboard_url }}";
+        const totalDuration = 2500; // 2.5 seconds total duration for a crisp, responsive feel
+        let isPaused = false;
+        let elapsed = 0;
+        let lastTimestamp = performance.now();
+
+        // 1. Time-of-Day Greeting
+        const hour = new Date().getHours();
+        let greeting = "Good morning";
+        if (hour >= 12 && hour < 17) {
+            greeting = "Good afternoon";
+        } else if (hour >= 17 || hour < 4) {
+            greeting = "Good evening";
+        }
+        document.getElementById("time-greeting").textContent = greeting;
+
+        // 2. Real-time Live Clock in Header
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById("time-display");
+            if (clockEl) clockEl.textContent = timeStr;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // 3. Status Steps Progression
+        const statusStepText = document.getElementById("status-step-text");
+        const step1 = document.getElementById("step-1");
+        const step2 = document.getElementById("step-2");
+        const step3 = document.getElementById("step-3");
+        const progressBar = document.getElementById("progress-bar");
+        const countdownText = document.getElementById("countdown-text");
+
+        function updateProgress(now) {
+            if (!isPaused) {
+                const delta = now - lastTimestamp;
+                elapsed += delta;
+            }
+            lastTimestamp = now;
+
+            const remaining = Math.max(0, totalDuration - elapsed);
+            const remainingSec = (remaining / 1000).toFixed(1);
+            const progressRatio = Math.min(1, Math.max(0, 1 - (elapsed / totalDuration)));
+
+            // Update countdown text
+            if (countdownText) {
+                countdownText.textContent = remainingSec + "s";
+            }
+
+            // Update bar width
+            if (progressBar) {
+                progressBar.style.width = (progressRatio * 100) + "%";
+            }
+
+            // Update status steps
+            if (progressRatio > 0.6) {
+                if (statusStepText) statusStepText.textContent = "Authenticating credentials…";
+            } else if (progressRatio > 0.25) {
+                if (statusStepText) statusStepText.textContent = "Synchronizing municipal services…";
+                if (step2) {
+                    step2.className = "text-cyan-400 font-semibold transition-colors";
+                    step2.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Data Sync';
+                }
+            } else {
+                if (statusStepText) statusStepText.textContent = "Launching workspace…";
+                if (step3) {
+                    step3.className = "text-cyan-400 font-semibold transition-colors";
+                    step3.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Dashboard Ready';
+                }
+            }
+
+            if (elapsed >= totalDuration) {
+                if (countdownText) countdownText.textContent = "Launching…";
+                window.location.href = targetUrl;
+                return;
+            }
+
+            requestAnimationFrame(updateProgress);
+        }
+
+        requestAnimationFrame((now) => {
+            lastTimestamp = now;
+            requestAnimationFrame(updateProgress);
+        });
+
+        // 4. Pause / Resume Toggle
+        const pauseBtn = document.getElementById("toggle-pause-btn");
+        const pauseIcon = document.getElementById("pause-icon");
+        const pauseText = document.getElementById("pause-text");
+
+        if (pauseBtn) {
+            pauseBtn.addEventListener("click", () => {
+                isPaused = !isPaused;
+                if (isPaused) {
+                    pauseIcon.className = "fas fa-play text-xs";
+                    pauseText.textContent = "Resume auto-launch";
+                    pauseBtn.classList.add("bg-cyan-500/10", "border-cyan-500/30", "text-cyan-300");
+                    if (countdownText) countdownText.textContent = "Paused";
+                } else {
+                    pauseIcon.className = "fas fa-pause text-xs";
+                    pauseText.textContent = "Pause auto-launch";
+                    pauseBtn.classList.remove("bg-cyan-500/10", "border-cyan-500/30", "text-cyan-300");
+                }
+            });
+        }
+
+        // 5. Keyboard Shortcut: Press Enter or Space to launch immediately
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.code === "Space") {
+                window.location.href = targetUrl;
+            }
+        });
+    </script>
+</body>
+</html>

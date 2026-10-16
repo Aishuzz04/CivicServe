@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & Reports | CivicServe Admin</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+        @media print {
+            #sidebar, header, .no-print { display: none !important; }
+            #mainContent { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+            body { background: white !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Administrator Panel</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> Complaints
+            </a>
+            <a href="{{ url_for('verify_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-check-circle w-5"></i> Verify Complaints
+            </a>
+            <a href="{{ url_for('departments') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-building w-5"></i> Departments
+            </a>
+            <a href="{{ url_for('admin_department_heads') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user-tie w-5"></i> Department Heads
+            </a>
+            <!-- ACTIVE: Reports -->
+            <a href="{{ url_for('reports') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-chart-bar w-5"></i> Reports & Analytics
+            </a>
+            <a href="{{ url_for('users') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users w-5"></i> Users
+            </a>
+        </nav>
+
+        <div class="px-3 py-4 border-t border-blue-900/50">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile drawer -->
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out flex flex-col min-h-screen">
+
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-600"></i> Executive Reports & Analytics
+                        </h2>
+                        <p class="text-xs text-gray-500 hidden sm:block">Department-level KPI monitoring, resolution benchmarks, and spatial hotspot analysis</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="window.print()" class="no-print hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 hover:bg-gray-50 rounded-lg text-xs font-semibold text-gray-700 transition shadow-sm">
+                        <i class="fas fa-print"></i> Print / Export PDF
+                    </button>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user-shield text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden md:block">Administrator</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="p-4 sm:p-6 lg:p-8 space-y-6 flex-1">
+
+            <!-- Filter & Scope Bar -->
+            <div class="no-print bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <form method="GET" action="{{ url_for('reports') }}" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <!-- Department Filter -->
+                    <div class="flex items-center gap-2">
+                        <label for="deptSelect" class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Department:</label>
+                        <select id="deptSelect" name="department_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium px-3 py-2 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">All Departments</option>
+                            {% for dept in all_departments %}
+                            <option value="{{ dept[0] }}" {% if selected_dept == dept[0] %}selected{% endif %}>
+                                {{ dept[1] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Time Range Filter -->
+                    <div class="flex items-center gap-2">
+                        <label for="timeSelect" class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Time Range:</label>
+                        <select id="timeSelect" name="time_range" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium px-3 py-2 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="all" {% if selected_time == 'all' %}selected{% endif %}>All Time</option>
+                            <option value="7days" {% if selected_time == '7days' %}selected{% endif %}>Last 7 Days</option>
+                            <option value="30days" {% if selected_time == '30days' %}selected{% endif %}>Last 30 Days</option>
+                            <option value="this_month" {% if selected_time == 'this_month' %}selected{% endif %}>This Month</option>
+                            <option value="this_year" {% if selected_time == 'this_year' %}selected{% endif %}>This Year</option>
+                        </select>
+                    </div>
+
+                    {% if selected_dept or (selected_time and selected_time != 'all') %}
+                    <a href="{{ url_for('reports') }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium underline flex items-center gap-1">
+                        <i class="fas fa-times-circle"></i> Reset Filters
+                    </a>
+                    {% endif %}
+                </form>
+
+                <div class="text-xs text-gray-500 flex items-center gap-2 self-end sm:self-center">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Live Database Sync: <strong>{{ total_complaints }} Complaints Analyzed</strong></span>
+                </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 1. HIGH-LEVEL KPI EXECUTIVE CARDS                                         -->
+            <!-- ========================================================================= -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- Card 1: Total Complaints -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Complaints</span>
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i class="fas fa-folder-open text-base"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-extrabold text-gray-900">{{ total_complaints }}</h3>
+                        <p class="text-xs text-gray-500 mt-1">Across all municipal sectors</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-600">
+                        <span>Resolved: <strong>{{ completed_complaints }}</strong></span>
+                        <span>Active: <strong>{{ pending_complaints }}</strong></span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Pending Complaints -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-amber-600 uppercase tracking-wider">Pending / Active</span>
+                        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <i class="fas fa-hourglass-half text-base"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-extrabold text-amber-700">{{ pending_complaints }}</h3>
+                        <p class="text-xs text-gray-500 mt-1">Awaiting inspection or work</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-amber-700">
+                        <span>Workload</span>
+                        <span class="font-semibold">{% if total_complaints > 0 %}{{ ((pending_complaints / total_complaints) * 100) | round(1) }}%{% else %}0%{% endif %} of total</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Completed Complaints -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Completed</span>
+                        <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i class="fas fa-check-double text-base"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-extrabold text-emerald-700">{{ completed_complaints }}</h3>
+                        <p class="text-xs text-gray-500 mt-1">Closed and verified resolved</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                        <span class="text-gray-500">Resolution Rate</span>
+                        <span class="font-bold text-emerald-600">{{ resolution_rate }}%</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Overdue Complaints -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-red-200 bg-red-50/20 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-red-600 uppercase tracking-wider">Overdue (> 7 Days)</span>
+                        <div class="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-base"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-extrabold text-red-700">{{ overdue_complaints }}</h3>
+                        <p class="text-xs text-red-600/80 mt-1 font-medium">Violating standard 7-day SLA</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-red-100 flex items-center justify-between text-[11px] text-red-700 font-semibold">
+                        <span>Requires Escalation</span>
+                        <span><i class="fas fa-arrow-up"></i> Urgent</span>
+                    </div>
+                </div>
+
+                <!-- Card 5: Average Resolution Time -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Avg Resolution Time</span>
+                        <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <i class="fas fa-stopwatch text-base"></i>
+                        </div>
+                    </div>
+                    <div>
+                        {% if avg_resolution_days and avg_resolution_days > 0 %}
+                            <h3 class="text-3xl font-extrabold text-indigo-900">{{ avg_resolution_days }} <span class="text-sm font-semibold text-gray-500">Days</span></h3>
+                            <p class="text-xs text-gray-500 mt-1">Approx. {{ avg_resolution_hours }} hours to complete</p>
+                        {% else %}
+                            <h3 class="text-3xl font-extrabold text-gray-400">N/A</h3>
+                            <p class="text-xs text-gray-500 mt-1">No completed records yet</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-indigo-600 font-medium">
+                        <span>Efficiency Benchmark</span>
+                        <span>Standard: &lt; 7.0d</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 2. INTERACTIVE CHARTS ROW (Chart.js)                                      -->
+            <!-- ========================================================================= -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Chart 1: Department-wise Breakdown -->
+                <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                                <i class="fas fa-building text-blue-600"></i> Department-Wise Complaint Breakdown
+                            </h4>
+                            <p class="text-xs text-gray-500">Volume distribution, active workload, completed jobs, and overdue backlogs per department</p>
+                        </div>
+                    </div>
+                    <div class="relative flex-1 min-h-[300px]">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Status & Resolution Health Doughnut -->
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                                <i class="fas fa-chart-pie text-indigo-600"></i> Resolution Health
+                            </h4>
+                            <p class="text-xs text-gray-500">Overall status compliance ratio</p>
+                        </div>
+                    </div>
+                    <div class="relative flex-1 min-h-[250px] flex items-center justify-center">
+                        <canvas id="statusDonutChart"></canvas>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="text-gray-600">Completed ({{ completed_complaints }})</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="text-gray-600">Pending ({{ pending_complaints }})</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                            <span class="text-gray-600">Overdue ({{ overdue_complaints }})</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                            <span class="text-gray-600">Rejected ({{ rejected_complaints }})</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 3. DEPARTMENT-WISE STATISTICS TABLE                                       -->
+            <!-- ========================================================================= -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                            <i class="fas fa-table-list text-blue-600"></i> Department Performance & Resolution Benchmarks
+                        </h4>
+                        <p class="text-xs text-gray-500">Detailed metric scorecard of complaints, overdue rates, and average resolution times</p>
+                    </div>
+                    <span class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-semibold border border-blue-200">
+                        {{ department_stats | length }} Active Departments
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3.5">Department</th>
+                                <th class="px-4 py-3.5 text-center">Total Received</th>
+                                <th class="px-4 py-3.5 text-center">Pending / In Progress</th>
+                                <th class="px-4 py-3.5 text-center">Completed</th>
+                                <th class="px-4 py-3.5 text-center">Overdue (&gt;7d)</th>
+                                <th class="px-6 py-3.5">Resolution Rate</th>
+                                <th class="px-6 py-3.5 text-right">Avg Resolution Time</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for dept in department_stats %}
+                            <tr class="hover:bg-gray-50/80 transition">
+                                <td class="px-6 py-4 font-semibold text-gray-900 flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                        {{ dept.department_name[:2] | upper }}
+                                    </div>
+                                    <span>{{ dept.department_name }}</span>
+                                </td>
+                                <td class="px-4 py-4 text-center font-bold text-gray-800">
+                                    {{ dept.total }}
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                        {{ dept.pending + dept.in_progress }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        {{ dept.completed }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    {% if dept.overdue > 0 %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                        <i class="fas fa-triangle-exclamation mr-1 text-[10px]"></i> {{ dept.overdue }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-xs text-gray-400 font-medium">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1 bg-gray-200 rounded-full h-2 max-w-[120px] overflow-hidden">
+                                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ dept.resolution_rate }}%;"></div>
+                                        </div>
+                                        <span class="text-xs font-bold text-gray-700">{{ dept.resolution_rate }}%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-right font-medium">
+                                    {% if dept.avg_resolution_days %}
+                                        <span class="text-indigo-700 font-semibold">{{ dept.avg_resolution_days }} Days</span>
+                                    {% else %}
+                                        <span class="text-gray-400 text-xs">No completed data</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                    No department records found for the selected filter.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 4. FREQUENTLY REPORTED PROBLEM LOCATIONS (HOTSPOTS)                       -->
+            <!-- ========================================================================= -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Hotspot Locations List -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                                <i class="fas fa-map-marker-alt text-red-500"></i> Frequently Reported Problem Locations (Hotspots)
+                            </h4>
+                            <p class="text-xs text-gray-500">Top areas generating the highest civic complaints and backlog volume</p>
+                        </div>
+                        <span class="text-xs font-semibold px-2.5 py-1 bg-red-50 text-red-700 rounded-md border border-red-200">
+                            Geographic Hotspots
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3">Location / Road / Area</th>
+                                    <th class="px-4 py-3 text-center">Complaints</th>
+                                    <th class="px-4 py-3 text-center">Overdue</th>
+                                    <th class="px-4 py-3 text-center">Resolved</th>
+                                    <th class="px-4 py-3 text-right">Resolution</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                {% for spot in hotspot_locations %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-3.5">
+                                        <div class="flex items-start gap-2.5">
+                                            <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-xs flex items-center justify-center mt-0.5 flex-shrink-0">
+                                                {{ loop.index }}
+                                            </span>
+                                            <div>
+                                                <p class="font-semibold text-gray-900 text-xs sm:text-sm leading-snug">{{ spot.location }}</p>
+                                                <p class="text-[11px] text-gray-500 mt-0.5">Primary Category: <span class="font-medium text-blue-600">{{ spot.category }}</span> · Latest: {{ spot.latest_report }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-center font-bold text-gray-900">
+                                        {{ spot.total_reports }}
+                                    </td>
+                                    <td class="px-4 py-3.5 text-center">
+                                        {% if spot.overdue_count > 0 %}
+                                        <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                                            {{ spot.overdue_count }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-xs text-gray-400">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3.5 text-center">
+                                        <span class="text-xs font-bold text-emerald-600">
+                                            {{ spot.resolved_count }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right font-semibold text-xs text-gray-700">
+                                        {{ spot.resolution_rate }}%
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="px-6 py-6 text-center text-gray-500 text-xs">
+                                        No location data available.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Monthly Volume Trend Chart -->
+                <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-blue-600"></i> Monthly Intake & Resolution
+                            </h4>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-4">Volume intake vs. successfully resolved complaints over recent months</p>
+                        <div class="relative min-h-[220px]">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center justify-between">
+                        <span>Resolution Efficiency</span>
+                        <span class="font-semibold text-blue-600">CivicServe Automated Tracking</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 5. CRITICAL OVERDUE COMPLAINTS ESCALATION LIST                            -->
+            <!-- ========================================================================= -->
+            {% if overdue_complaints_list %}
+            <div class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+                <div class="px-6 py-4 bg-red-50/60 border-b border-red-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-bold text-red-900 text-base flex items-center gap-2">
+                            <i class="fas fa-bell text-red-600 animate-bounce"></i> Urgent Attention: Critical Overdue Complaints (> 7 Days)
+                        </h4>
+                        <p class="text-xs text-red-700">Complaints that have exceeded the municipal standard resolution timeline</p>
+                    </div>
+                    <span class="text-xs bg-red-600 text-white font-bold px-3 py-1 rounded-full shadow-sm">
+                        {{ overdue_complaints_list | length }} Priority Overdue
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-red-50/30 text-gray-600 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3">ID</th>
+                                <th class="px-6 py-3">Title</th>
+                                <th class="px-4 py-3">Department</th>
+                                <th class="px-6 py-3">Location</th>
+                                <th class="px-4 py-3 text-center">Priority</th>
+                                <th class="px-4 py-3 text-center">Days Open</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-6 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for item in overdue_complaints_list %}
+                            <tr class="hover:bg-red-50/30 transition">
+                                <td class="px-6 py-3.5 font-bold text-gray-900 text-xs">
+                                    #{{ item[0] }}
+                                </td>
+                                <td class="px-6 py-3.5 font-medium text-gray-800 text-xs sm:text-sm">
+                                    {{ item[1] }}
+                                </td>
+                                <td class="px-4 py-3.5 text-xs text-gray-600 font-semibold">
+                                    {{ item[2] or 'Unassigned' }}
+                                </td>
+                                <td class="px-6 py-3.5 text-xs text-gray-500 max-w-xs truncate">
+                                    {{ item[3] }}
+                                </td>
+                                <td class="px-4 py-3.5 text-center">
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded {% if item[4] == 'High' or item[4] == 'Urgent' %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ item[4] }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3.5 text-center font-extrabold text-red-600 text-xs">
+                                    {{ item[7] | int }} Days
+                                </td>
+                                <td class="px-4 py-3.5 text-center">
+                                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                                        {{ item[5] }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-3.5 text-right">
+                                    <a href="{{ url_for('admin_complaints') }}?search={{ item[0] }}" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold underline">
+                                        View Details <i class="fas fa-chevron-right text-[10px]"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+</div>
+
+<!-- Raw Chart Data passed safely from Flask -->
+<script id="chart-data" type="application/json">
+{{ chart_data_json | safe }}
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const rawData = document.getElementById("chart-data").textContent;
+        let chartData = {};
+        try {
+            chartData = JSON.parse(rawData);
+        } catch (e) {
+            console.error("Failed to parse chart data", e);
+        }
+
+        // =========================================================
+        // Chart 1: Department Comparison Stacked/Grouped Bar Chart
+        // =========================================================
+        const deptCtx = document.getElementById('deptChart');
+        if (deptCtx && chartData.dept_labels && chartData.dept_labels.length > 0) {
+            new Chart(deptCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartData.dept_labels,
+                    datasets: [
+                        {
+                            label: 'Completed',
+                            data: chartData.dept_completed,
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Pending / In Progress',
+                            data: chartData.dept_pending,
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Overdue (>7d)',
+                            data: chartData.dept_overdue,
+                            backgroundColor: '#ef4444',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+        // =========================================================
+        // Chart 2: Resolution Health Doughnut Chart
+        // =========================================================
+        const statusCtx = document.getElementById('statusDonutChart');
+        if (statusCtx && chartData.status_counts) {
+            new Chart(statusCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.status_labels,
+                    datasets: [{
+                        data: chartData.status_counts,
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#9ca3af'],
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${val} (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '68%'
+                }
+            });
+        }
+
+        // =========================================================
+        // Chart 3: Monthly Trends Area Chart
+        // =========================================================
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx && chartData.trend_months && chartData.trend_months.length > 0) {
+            new Chart(trendCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.trend_months,
+                    datasets: [
+                        {
+                            label: 'Received',
+                            data: chartData.trend_received,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Resolved',
+                            data: chartData.trend_resolved,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

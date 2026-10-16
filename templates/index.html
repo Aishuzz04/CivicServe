@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Public Infrastructure | Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .hero-bg {
+            background: linear-gradient(rgba(10, 31, 61, 0.75), rgba(10, 31, 61, 0.85)),
+                        url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=1920') center/cover no-repeat;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Navbar -->
+    <nav class="bg-[#0A1F3D] text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full bg-white/10 p-0.5 shadow">
+                    <div>
+                        <h1 class="text-lg font-bold leading-tight">CivicServe</h1>
+                        <p class="text-xs text-blue-200">Smart Public Infrastructure Management System</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="{{ url_for('home') }}" class="text-white font-medium nav-active pb-0.5">Home</a>
+                    <a href="#about" class="text-gray-300 hover:text-white transition">About</a>
+                    <a href="#services" class="text-gray-300 hover:text-white transition">Services</a>
+                    <a href="#contact" class="text-gray-300 hover:text-white transition">Contact</a>
+                    {% if session.get('user_id') %}
+                        <a href="{{ url_for('citizen_dashboard') }}" class="px-4 py-1.5 border border-white/40 rounded-md hover:bg-white/10 transition text-sm">Dashboard</a>
+                        <a href="{{ url_for('logout') }}" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-md transition text-sm font-medium">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="px-4 py-1.5 border border-white/40 rounded-md hover:bg-white/10 transition text-sm">Login</a>
+                        <a href="{{ url_for('register') }}" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-md transition text-sm font-medium">Register</a>
+                    {% endif %}
+                </div>
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-btn" class="md:hidden text-white text-xl">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[#0A1F3D] border-t border-blue-900">
+            <div class="px-4 py-3 space-y-2">
+                <a href="{{ url_for('home') }}" class="block py-2 text-white">Home</a>
+                <a href="#about" class="block py-2 text-gray-300">About</a>
+                <a href="#services" class="block py-2 text-gray-300">Services</a>
+                <a href="#contact" class="block py-2 text-gray-300">Contact</a>
+                <div class="flex gap-3 pt-2">
+                    {% if session.get('user_id') %}
+                        <a href="{{ url_for('citizen_dashboard') }}" class="flex-1 text-center py-2 border border-white/40 rounded-md text-sm">Dashboard</a>
+                        <a href="{{ url_for('logout') }}" class="flex-1 text-center py-2 bg-blue-600 rounded-md text-sm">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="flex-1 text-center py-2 border border-white/40 rounded-md text-sm">Login</a>
+                        <a href="{{ url_for('register') }}" class="flex-1 text-center py-2 bg-blue-600 rounded-md text-sm">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+            <div class="max-w-2xl">
+                <h2 class="text-4xl md:text-5xl font-bold leading-tight mb-4">
+                    Together, Let's Build<br>Better Infrastructure
+                </h2>
+                <p class="text-lg text-blue-100 mb-8 max-w-lg">
+                    Report issues, track progress, and help us keep our city safe, clean and efficient.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="{{ url_for('register_complaint') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition shadow-lg">
+                        Report Complaint
+                    </a>
+                    <a href="{{ url_for('login') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#0A1F3D] hover:bg-gray-100 rounded-lg font-semibold transition shadow-lg">
+                        Track Complaint
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Report Issues Section -->
+    <section id="services" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-10">Report Issues in</h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Roads -->
+                <a href="{{ url_for('register_complaint') }}" class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-blue-300 transition duration-300">
+                    <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-50 transition">
+                        <i class="fas fa-road text-2xl text-gray-600 group-hover:text-blue-600"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-1">Roads</h4>
+                    <p class="text-sm text-gray-500">Potholes, damaged roads, footpaths</p>
+                </a>
+
+                <!-- Streetlights -->
+                <a href="{{ url_for('register_complaint') }}" class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-yellow-300 transition duration-300">
+                    <div class="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-yellow-100 transition">
+                        <i class="fas fa-lightbulb text-2xl text-yellow-500"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-1">Streetlights</h4>
+                    <p class="text-sm text-gray-500">Not working or damaged lights</p>
+                </a>
+
+                <!-- Water Supply -->
+                <a href="{{ url_for('register_complaint') }}" class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-blue-300 transition duration-300">
+                    <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-100 transition">
+                        <i class="fas fa-faucet text-2xl text-blue-500"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-1">Water Supply</h4>
+                    <p class="text-sm text-gray-500">Leakage, no water supply issues</p>
+                </a>
+
+                <!-- Drainage -->
+                <a href="{{ url_for('register_complaint') }}" class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-blue-300 transition duration-300">
+                    <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-100 transition">
+                        <i class="fas fa-water text-2xl text-blue-600"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-1">Drainage</h4>
+                    <p class="text-sm text-gray-500">Blocked or overflowing drains</p>
+                </a>
+
+                <!-- Waste Management -->
+                <a href="{{ url_for('register_complaint') }}" class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-green-300 transition duration-300">
+                    <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-100 transition">
+                        <i class="fas fa-trash-alt text-2xl text-green-600"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-1">Waste Management</h4>
+                    <p class="text-sm text-gray-500">Garbage collection, cleanliness issues</p>
+                </a>
+
+                <!-- Parks & Gardens -->
+                <a href="{{ url_for('register_complaint') }}" class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-green-300 transition duration-300">
+                    <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-100 transition">
+                        <i class="fas fa-tree text-2xl text-green-600"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-1">Parks & Gardens</h4>
+                    <p class="text-sm text-gray-500">Maintenance of parks and public gardens</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[#0A1F3D] text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center gap-2.5 mb-3">
+                <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-8 h-8 object-contain rounded-full bg-white/10 p-0.5">
+                <span class="font-bold tracking-tight">CivicServe</span>
+            </div>
+            <p class="text-sm text-blue-200">© 2026 CivicServe · Smart Public Infrastructure System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

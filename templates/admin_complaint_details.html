@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Complaint Details</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
+
+        <div class="flex items-center gap-3">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow-sm">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">
+                    Complaint Details
+                </h1>
+
+                <p class="text-gray-500 text-sm">
+                    View complete complaint information
+                </p>
+            </div>
+        </div>
+
+        <button onclick="history.back()"
+        class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back
+        </button>
+    </div>
+
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto p-8">
+
+        <!-- Duplicate Info Banner -->
+        {% if complaint.is_duplicate %}
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fas fa-link"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-amber-900 text-base">Confirmed Duplicate Report</h3>
+                    <p class="text-sm text-amber-800 mt-0.5">
+                        This complaint is linked to <strong>Main Complaint #{{ complaint.parent_complaint_id }}</strong>. It does not proceed independently to department assignment or field maintenance; work is coordinated and tracked under the main record.
+                    </p>
+                    {% if parent_complaint %}
+                    <p class="text-xs text-amber-700 mt-1">
+                        Main Complaint: <em>"{{ parent_complaint.title }}"</em> (Status: <span class="font-semibold">{{ parent_complaint.status }}</span>)
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{{ url_for('admin_complaints', complaint_id=complaint.parent_complaint_id) }}" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold inline-flex items-center gap-2 self-start sm:self-auto shadow-sm transition">
+                <i class="fas fa-external-link-alt text-xs"></i> View Main Ticket #{{ complaint.parent_complaint_id }}
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Complaint Information -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+
+            <div class="flex justify-between items-center mb-6">
+
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Complaint #{{ complaint.complaint_id }}
+                    </h2>
+
+                    <p class="text-gray-500 text-sm">
+                        Submitted
+                        {% if complaint.created_at %}
+                            {{ complaint.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div>
+
+                    {% if complaint.status == "Pending" %}
+                        <span class="px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-700">
+                            Pending
+                        </span>
+
+                    {% elif complaint.status == "Completed" or complaint.status == "Closed" %}
+                        <span class="px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">
+                            {{ complaint.status }}
+                        </span>
+
+                    {% elif complaint.status == "Rejected" %}
+                        <span class="px-3 py-1 rounded-full text-sm bg-red-100 text-red-700">
+                            Rejected
+                        </span>
+
+                    {% else %}
+                        <span class="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+                            {{ complaint.status }}
+                        </span>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <!-- Details Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Title -->
+                <div>
+                    <p class="text-sm text-gray-500">Title</p>
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.title }}
+                    </p>
+                </div>
+
+
+                <!-- Category -->
+                <div>
+                    <p class="text-sm text-gray-500">Category</p>
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.category }}
+                    </p>
+                </div>
+
+
+                <!-- Priority -->
+                <div>
+                    <p class="text-sm text-gray-500">Priority</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.priority or "Not Assigned" }}
+                    </p>
+                </div>
+
+
+                <!-- Verification -->
+                <div>
+                    <p class="text-sm text-gray-500">Verification Status</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.verification_status or "Pending" }}
+                    </p>
+                </div>
+
+
+                <!-- Department -->
+                <div>
+                    <p class="text-sm text-gray-500">Department</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.department_name or "Not Assigned" }}
+                    </p>
+                </div>
+
+
+                <!-- Location -->
+                <div>
+                    <p class="text-sm text-gray-500">Location</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.location or "Not provided" }}
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- Description -->
+            <div class="mt-6">
+
+                <p class="text-sm text-gray-500">
+                    Description
+                </p>
+
+                <div class="mt-2 bg-gray-50 rounded-lg p-4 text-gray-700">
+                    {{ complaint.description }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Citizen Information -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+
+            <h2 class="text-lg font-bold text-gray-800 mb-5">
+                <i class="fas fa-user mr-2"></i>
+                Citizen Information
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <div>
+                    <p class="text-sm text-gray-500">Name</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.citizen_name }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-500">Email</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.citizen_email or "Not available" }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-500">Phone</p>
+
+                    <p class="font-semibold text-gray-800 mt-1">
+                        {{ complaint.citizen_phone or "Not available" }}
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Linked Duplicate Reports -->
+        {% if linked_duplicates %}
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm">
+                        <i class="fas fa-clone"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">
+                            Linked Duplicate Reports ({{ linked_duplicates|length }})
+                        </h2>
+                        <p class="text-xs text-gray-500">Citizen reports confirmed as duplicates and linked to this main ticket</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left font-semibold">Complaint ID</th>
+                            <th class="px-4 py-2.5 text-left font-semibold">Title</th>
+                            <th class="px-4 py-2.5 text-left font-semibold">Citizen</th>
+                            <th class="px-4 py-2.5 text-left font-semibold">Match Score</th>
+                            <th class="px-4 py-2.5 text-left font-semibold">Submitted</th>
+                            <th class="px-4 py-2.5 text-left font-semibold">Status</th>
+                            <th class="px-4 py-2.5 text-right font-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for dup in linked_duplicates %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 font-semibold text-gray-800">#CMP-{{ dup.complaint_id }}</td>
+                            <td class="px-4 py-3 text-gray-700">{{ dup.title }}</td>
+                            <td class="px-4 py-3 text-gray-600">{{ dup.citizen_name }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                                    {{ dup.similarity_score }}% Match
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-500 text-xs">{{ dup.created_at.strftime('%Y-%m-%d %H:%M') if dup.created_at else '-' }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                    {{ dup.status }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <a href="{{ url_for('admin_complaints', complaint_id=dup.complaint_id) }}" class="text-blue-600 hover:text-blue-800 font-medium text-xs">
+                                    View Details →
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Complaint Image -->
+        {% if complaint.image_path %}
+
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+
+            <h2 class="text-lg font-bold text-gray-800 mb-5">
+                <i class="fas fa-image mr-2"></i>
+                Complaint Image
+            </h2>
+
+            <img
+                src="{{ url_for('uploaded_file', filename=complaint.image_path.replace('\\', '/').split('/')[-1]) }}"
+                alt="Complaint Image"
+                class="max-w-full md:max-w-2xl rounded-lg border">
+
+        </div>
+
+        {% endif %}
+
+
+        <!-- Location Map -->
+        {% if complaint.latitude and complaint.longitude %}
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+
+            <h2 class="text-lg font-bold text-gray-800 mb-5">
+                <i class="fas fa-map-marker-alt mr-2"></i>
+                Complaint Location
+            </h2>
+
+            <div id="map"
+                 class="w-full h-96 rounded-lg">
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+    {% if complaint.latitude and complaint.longitude %}
+
+    <script>
+
+        const latitude = {{ complaint.latitude }};
+        const longitude = {{ complaint.longitude }};
+
+        const map = L.map('map').setView(
+            [latitude, longitude],
+            16
+        );
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution: '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(map);
+
+
+        L.marker([latitude, longitude])
+            .addTo(map)
+            .bindPopup(
+                "{{ complaint.location }}"
+            )
+            .openPopup();
+
+    </script>
+
+    {% endif %}
+
+</body>
+
+</html>

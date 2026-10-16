@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Orders | CivicServe Maintenance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Maintenance Portal</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('maintenance_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('maintenance_work_orders') }}" class="sidebar-link {% if current_status not in ['In Progress', 'Completed'] %}active{% else %}text-blue-100{% endif %} flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-clipboard-list w-5"></i> My Work Orders
+            </a>
+            <a href="{{ url_for('maintenance_work_orders', status='In Progress') }}" class="sidebar-link {% if current_status == 'In Progress' %}active{% else %}text-blue-100{% endif %} flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-spinner w-5"></i> In Progress
+            </a>
+            <a href="{{ url_for('maintenance_work_orders', status='Completed') }}" class="sidebar-link {% if current_status == 'Completed' %}active{% else %}text-blue-100{% endif %} flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-check-circle w-5"></i> Completed
+            </a>
+            <a href="{{ url_for('maintenance_profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/40">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800 leading-tight">My Work Orders</h2>
+                        <p class="text-xs text-gray-500 hidden sm:block">Manage and update all assigned maintenance tasks</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('maintenance_profile') }}" class="flex items-center gap-2 hover:opacity-85 transition p-1.5 rounded-lg hover:bg-gray-50">
+                        <div class="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user-cog text-green-600"></i>
+                        </div>
+                        <div class="hidden sm:block text-left">
+                            <p class="text-sm font-medium text-gray-800 leading-tight">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-gray-500">Maintenance Staff</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl flex items-center justify-between text-sm {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas {% if category == 'error' %}fa-circle-exclamation text-red-500{% elif category == 'success' %}fa-circle-check text-emerald-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Top KPI Pill Summary -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+                <a href="{{ url_for('maintenance_work_orders') }}" class="p-3 bg-white rounded-xl border {% if not current_status or current_status == 'all' %}border-blue-500 shadow-sm ring-1 ring-blue-500{% else %}border-gray-100 hover:border-gray-300{% endif %} transition">
+                    <p class="text-xs text-gray-500">All Orders</p>
+                    <p class="text-xl font-bold text-gray-800 mt-0.5">{{ total_count }}</p>
+                </a>
+                <a href="{{ url_for('maintenance_work_orders', status='Assigned') }}" class="p-3 bg-white rounded-xl border {% if current_status == 'Assigned' %}border-blue-500 shadow-sm ring-1 ring-blue-500{% else %}border-gray-100 hover:border-blue-200{% endif %} transition">
+                    <p class="text-xs text-blue-600 font-medium">Assigned</p>
+                    <p class="text-xl font-bold text-blue-700 mt-0.5">{{ assigned_count }}</p>
+                </a>
+                <a href="{{ url_for('maintenance_work_orders', status='In Progress') }}" class="p-3 bg-white rounded-xl border {% if current_status == 'In Progress' %}border-orange-500 shadow-sm ring-1 ring-orange-500{% else %}border-gray-100 hover:border-orange-200{% endif %} transition">
+                    <p class="text-xs text-orange-600 font-medium">In Progress</p>
+                    <p class="text-xl font-bold text-orange-600 mt-0.5">{{ in_progress_count }}</p>
+                </a>
+                <a href="{{ url_for('maintenance_work_orders', status='Completed') }}" class="p-3 bg-white rounded-xl border {% if current_status == 'Completed' %}border-green-500 shadow-sm ring-1 ring-green-500{% else %}border-gray-100 hover:border-green-200{% endif %} transition">
+                    <p class="text-xs text-green-600 font-medium">Completed</p>
+                    <p class="text-xl font-bold text-green-600 mt-0.5">{{ completed_count }}</p>
+                </a>
+                <a href="{{ url_for('maintenance_work_orders', priority='High') }}" class="p-3 bg-white rounded-xl border {% if current_priority == 'High' %}border-red-500 shadow-sm ring-1 ring-red-500{% else %}border-gray-100 hover:border-red-200{% endif %} transition col-span-2 sm:col-span-1">
+                    <p class="text-xs text-red-600 font-medium">High Priority</p>
+                    <p class="text-xl font-bold text-red-600 mt-0.5">{{ high_priority_count }}</p>
+                </a>
+            </div>
+
+            <!-- Filters & Search Toolbar -->
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+                <form method="GET" action="{{ url_for('maintenance_work_orders') }}" class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    
+                    <!-- Status Filter Tabs -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                        <a href="{{ url_for('maintenance_work_orders', priority=current_priority if current_priority != 'all' else None, q=search_query if search_query else None) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition {% if not current_status or current_status == 'all' %}bg-blue-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                            All ({{ total_count }})
+                        </a>
+                        <a href="{{ url_for('maintenance_work_orders', status='Assigned', priority=current_priority if current_priority != 'all' else None, q=search_query if search_query else None) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition {% if current_status == 'Assigned' %}bg-blue-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                            Assigned ({{ assigned_count }})
+                        </a>
+                        <a href="{{ url_for('maintenance_work_orders', status='In Progress', priority=current_priority if current_priority != 'all' else None, q=search_query if search_query else None) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition {% if current_status == 'In Progress' %}bg-orange-500 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                            In Progress ({{ in_progress_count }})
+                        </a>
+                        <a href="{{ url_for('maintenance_work_orders', status='Completed', priority=current_priority if current_priority != 'all' else None, q=search_query if search_query else None) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition {% if current_status == 'Completed' %}bg-green-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                            Completed ({{ completed_count }})
+                        </a>
+                    </div>
+
+                    <!-- Search and Priority Select -->
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <input type="hidden" name="status" value="{{ current_status }}">
+
+                        <!-- Priority Filter -->
+                        <select name="priority" onchange="this.form.submit()" class="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="all" {% if current_priority == 'all' or not current_priority %}selected{% endif %}>All Priorities</option>
+                            <option value="High" {% if current_priority == 'High' %}selected{% endif %}>High Priority</option>
+                            <option value="Medium" {% if current_priority == 'Medium' %}selected{% endif %}>Medium Priority</option>
+                            <option value="Low" {% if current_priority == 'Low' %}selected{% endif %}>Low Priority</option>
+                        </select>
+
+                        <!-- Search Input -->
+                        <div class="relative flex-1 sm:w-64">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                            <input 
+                                type="text" 
+                                name="q" 
+                                id="searchInput"
+                                value="{{ search_query }}"
+                                placeholder="Search work orders..." 
+                                class="w-full text-xs pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+
+                        {% if search_query or (current_priority and current_priority != 'all') or (current_status and current_status != 'all') %}
+                        <a href="{{ url_for('maintenance_work_orders') }}" class="p-2 text-gray-400 hover:text-red-500 text-xs rounded-lg hover:bg-gray-100 transition" title="Clear all filters">
+                            <i class="fas fa-times-circle"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
+            <!-- Work Orders Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500 border-b border-gray-100">
+                            <tr>
+                                <th class="text-left px-5 py-3 font-medium">Order ID</th>
+                                <th class="text-left px-5 py-3 font-medium">Complaint / Issue</th>
+                                <th class="text-left px-5 py-3 font-medium">Location</th>
+                                <th class="text-left px-5 py-3 font-medium">Category</th>
+                                <th class="text-left px-5 py-3 font-medium">Priority</th>
+                                <th class="text-left px-5 py-3 font-medium">Status</th>
+                                <th class="text-left px-5 py-3 font-medium">Assigned / Updated</th>
+                                <th class="text-left px-5 py-3 font-medium">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100" id="workOrdersBody">
+                            {% if work_orders %}
+                                {% for w in work_orders %}
+                                <tr class="hover:bg-gray-50/80 transition work-order-row">
+                                    <!-- Order ID -->
+                                    <td class="px-5 py-4 font-bold text-blue-700 whitespace-nowrap">
+                                        #{{ w.complaint_id }}
+                                    </td>
+
+                                    <!-- Title & Snippet -->
+                                    <td class="px-5 py-4">
+                                        <a href="{{ url_for('maintenance_view', complaint_id=w.complaint_id) }}" class="font-semibold text-gray-800 hover:text-blue-600 transition block">
+                                            {{ w.title }}
+                                        </a>
+                                        {% if w.description %}
+                                        <p class="text-xs text-gray-500 mt-0.5 line-clamp-1 max-w-xs">{{ w.description }}</p>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Location -->
+                                    <td class="px-5 py-4 text-gray-600">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fas fa-location-dot text-gray-400 text-xs"></i>
+                                            <span class="text-xs">{{ w.location }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Category -->
+                                    <td class="px-5 py-4 text-gray-600 whitespace-nowrap">
+                                        <span class="px-2.5 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium">
+                                            {{ w.category or 'General' }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Priority -->
+                                    <td class="px-5 py-4 whitespace-nowrap">
+                                        {% if w.priority == 'High' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 inline-flex items-center gap-1">
+                                                <i class="fas fa-circle text-[7px]"></i> High
+                                            </span>
+                                        {% elif w.priority == 'Medium' %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 inline-flex items-center gap-1">
+                                                <i class="fas fa-circle text-[7px]"></i> Medium
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 inline-flex items-center gap-1">
+                                                <i class="fas fa-circle text-[7px]"></i> Low
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="px-5 py-4 whitespace-nowrap">
+                                        {% if w.status == 'Assigned' %}
+                                            <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold inline-flex items-center gap-1.5">
+                                                <i class="fas fa-clock"></i> Assigned
+                                            </span>
+                                        {% elif w.status == 'In Progress' %}
+                                            <span class="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold inline-flex items-center gap-1.5">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span> In Progress
+                                            </span>
+                                        {% elif w.status == 'Completed' %}
+                                            <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold inline-flex items-center gap-1.5">
+                                                <i class="fas fa-check"></i> Completed
+                                            </span>
+                                        {% else %}
+                                            <span class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
+                                                {{ w.status }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Dates -->
+                                    <td class="px-5 py-4 whitespace-nowrap text-xs text-gray-500">
+                                        <div>Assigned: {{ w.assigned_date or '—' }}</div>
+                                        {% if w.completion_date %}
+                                        <div class="text-green-600 font-medium">Done: {{ w.completion_date }}</div>
+                                        {% elif w.start_date %}
+                                        <div class="text-orange-500 font-medium">Started: {{ w.start_date }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="px-5 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            {% if w.status == 'Assigned' %}
+                                                <a href="{{ url_for('maintenance_start_work', complaint_id=w.complaint_id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white shadow-sm transition">
+                                                    <i class="fas fa-play text-[9px]"></i> Start Work
+                                                </a>
+                                                <a href="{{ url_for('maintenance_view', complaint_id=w.complaint_id) }}" class="p-1.5 text-gray-400 hover:text-blue-600 transition" title="View details">
+                                                    <i class="fas fa-eye text-sm"></i>
+                                                </a>
+                                            {% elif w.status == 'In Progress' %}
+                                                <a href="{{ url_for('maintenance_view', complaint_id=w.complaint_id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
+                                                    <i class="fas fa-clipboard-check text-[10px]"></i> Complete Work
+                                                </a>
+                                            {% elif w.status == 'Completed' %}
+                                                <a href="{{ url_for('maintenance_view', complaint_id=w.complaint_id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                                                    <i class="fas fa-file-alt text-gray-500"></i> View Report
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('maintenance_view', complaint_id=w.complaint_id) }}" class="p-1.5 text-blue-600 hover:text-blue-800 transition">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="px-5 py-16 text-center">
+                                        <div class="flex flex-col items-center justify-center max-w-sm mx-auto">
+                                            <div class="w-16 h-16 bg-blue-50 text-blue-400 rounded-full flex items-center justify-center mb-4">
+                                                <i class="fas fa-clipboard-list text-2xl"></i>
+                                            </div>
+                                            <h4 class="text-base font-semibold text-gray-800">No work orders found</h4>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                {% if search_query or current_status != 'all' or current_priority != 'all' %}
+                                                    No work orders match your search and filter criteria. Try resetting filters.
+                                                {% else %}
+                                                    You currently have no maintenance work orders assigned to your account.
+                                                {% endif %}
+                                            </p>
+                                            <a href="{{ url_for('maintenance_work_orders') }}" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition">
+                                                Reset All Filters
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+
+    // Client-side quick filter on keyup
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const val = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('.work-order-row');
+            rows.forEach(r => {
+                const text = r.innerText.toLowerCase();
+                r.style.display = text.includes(val) ? '' : 'none';
+            });
+        });
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

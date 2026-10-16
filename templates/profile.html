@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #1E40AF; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.1); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+<div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0A1F3D] text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Citizen Portal</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="{{ url_for('citizen_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('register_complaint') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-edit w-5"></i> Register Complaint
+            </a>
+            <a href="{{ url_for('track_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search w-5"></i> Track Complaints
+            </a>
+            <a href="{{ url_for('profile') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-comment-dots w-5"></i> Feedback
+            </a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 mt-6">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <button type="button" onclick="goBack()"
+                            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="hidden sm:inline">Back</span>
+                    </button>
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden sm:inline">Home</span>
+                    </a>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('notifications') }}"
+                       class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                       title="Notifications">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                    </a>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ first_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">My Profile</h2>
+                <p class="text-sm text-gray-500 mt-1">Manage your personal information</p>
+            </div>
+            {% if success %}
+            <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ success }}</span>
+            </div>
+            {% endif %}
+
+            {% if error %}
+            <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <div class="max-w-2xl">
+
+                <!-- Profile Header -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                    <div class="h-28 bg-gradient-to-r from-blue-600 to-blue-500"></div>
+                    <div class="px-6 pb-6">
+                        <div class="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
+                            <div class="w-24 h-24 bg-white rounded-full border-4 border-white shadow-md flex items-center justify-center">
+                                <div class="w-full h-full bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-4xl text-blue-600"></i>
+                                </div>
+                            </div>
+                            <div class="pb-2">
+                                <h3 class="text-xl font-bold text-gray-800">{{ first_name }} {{ last_name | default('') }}</h3>
+                                <p class="text-sm text-gray-500">Citizen Account</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Information -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h4 class="font-semibold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-id-card text-blue-600"></i>
+                            Personal Information
+                        </h4>
+                        <button type="button" id="editBtn" onclick="enableEdit()"
+                                class="px-4 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+                            <i class="fas fa-pen mr-1"></i> Update
+                        </button>
+                    </div>
+
+                    <form method="POST" id="profileForm" class="space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
+                                <input type="text" name="first_name" id="first_name" value="{{ first_name }}"
+                                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700 outline-none" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
+                                <input type="text" name="last_name" id="last_name" value="{{ last_name | default('') }}"
+                                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700 outline-none" readonly>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+                            <input type="email" name="email" value="{{ email | default('') }}"
+                                   class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 outline-none" readonly>
+                            <p class="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+                            <input type="tel" name="phone" id="phone" value="{{ phone | default('') }}"
+                                   class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700 outline-none" readonly>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+                            <textarea name="address" id="address" rows="3"
+                                      class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700 outline-none resize-none" readonly>{{ address | default('') }}</textarea>
+                        </div>
+
+                        <!-- Save / Cancel (hidden by default) -->
+                        <div id="saveSection" class="pt-3 hidden flex gap-3">
+                            <button type="submit"
+                                    class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition shadow-sm">
+                                <i class="fas fa-save mr-1.5"></i> Save Changes
+                            </button>
+                            <button type="button" onclick="cancelEdit()"
+                                    class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    function goBack() {
+        if (document.referrer) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('citizen_dashboard') }}";
+        }
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+
+    function enableEdit() {
+        const fields = ['first_name', 'last_name', 'phone', 'address'];
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            el.removeAttribute('readonly');
+            el.classList.remove('bg-gray-50');
+            el.classList.add('bg-white', 'focus:ring-2', 'focus:ring-blue-500', 'focus:border-blue-500');
+        });
+
+        document.getElementById('saveSection').classList.remove('hidden');
+        document.getElementById('editBtn').classList.add('hidden');
+    }
+
+    function cancelEdit() {
+        window.location.reload();
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

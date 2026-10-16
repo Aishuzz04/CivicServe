@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #1E40AF; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.1); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+<div class="flex min-h-screen">
+
+    <!-- Sidebar (same as above) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0A1F3D] text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Citizen Portal</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="{{ url_for('citizen_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('register_complaint') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-edit w-5"></i> Register Complaint
+            </a>
+            <a href="{{ url_for('track_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search w-5"></i> Track Complaints
+            </a>
+            <a href="{{ url_for('profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-comment-dots w-5"></i> Feedback
+            </a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 mt-6">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+
+                <!-- Left side -->
+                <div class="flex items-center gap-3">
+                    <!-- Mobile / Desktop menu button -->
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <!-- Back Button -->
+                    <button
+                        type="button"
+                        onclick="goBack()"
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="hidden sm:inline">Back</span>
+                    </button>
+
+                    <!-- Home Button -->
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden sm:inline">Home</span>
+                    </a>
+                </div>
+
+                <!-- Right side (Notifications + User info) -->
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('notifications') }}"
+                       class="relative p-2 text-blue-600 bg-blue-50 rounded-lg transition"
+                       title="Notifications">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                    </a>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ first_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Notifications</h2>
+                <button class="text-sm text-blue-600 hover:underline">Mark all as read</button>
+            </div>
+
+            <div class="space-y-3">
+                {% if notifications %}
+                    {% for notification in notifications %}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex gap-4 hover:shadow-md transition">
+                        <div class="w-10 h-10
+                            {% if notification.status == 'Completed' %}
+                                bg-green-100
+                            {% elif notification.status == 'Maintenance' %}
+                                bg-yellow-100
+                            {% elif notification.status == 'Rejected' %}
+                                bg-red-100
+                            {% elif notification.status == 'Assigned' %}
+                                bg-blue-100
+                            {% else %}
+                                bg-gray-100
+                            {% endif %}
+                            rounded-full flex items-center justify-center flex-shrink-0">
+                            {% if notification.status == 'Completed' %}
+                                <i class="fas fa-check-circle text-green-600"></i>
+                            {% elif notification.status == 'Maintenance' %}
+                                <i class="fas fa-tools text-yellow-600"></i>
+                            {% elif notification.status == 'Rejected' %}
+                                <i class="fas fa-times-circle text-red-600"></i>
+                            {% elif notification.status == 'Assigned' %}
+                                <i class="fas fa-user-check text-blue-600"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle text-gray-600"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-800">
+                                {{ notification.message }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                {% if notification.updated_at %}
+                                    {{ notification.updated_at.strftime('%d-%m-%Y %I:%M %p') }}
+                                {% else %}
+                                    {{ notification.created_at.strftime('%d-%m-%Y %I:%M %p') }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
+                    </div>
+                {% endfor %}
+                {% else %}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-bell-slash text-gray-400 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-700">
+                            No Notifications
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            You don't have any complaint updates yet.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+function goBack() {
+    if (document.referrer) {
+        window.history.back();
+    } else {
+        window.location.href = "{{ url_for('citizen_dashboard') }}";
+    }
+}
+</script>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

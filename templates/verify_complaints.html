@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Verify Complaints | Administrator Panel</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .sidebar-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.08);
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+
+
+<body class="bg-gray-100">
+
+
+<div class="flex min-h-screen">
+
+
+    <!-- =============================== -->
+    <!-- SIDEBAR -->
+    <!-- =============================== -->
+
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Administrator Panel</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+
+            <a href="{{ url_for('admin_dashboard') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+
+                <i class="fas fa-home w-5"></i>
+
+                Dashboard
+
+            </a>
+
+
+            <a href="{{ url_for('admin_complaints') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+
+                <i class="fas fa-clipboard-list w-5"></i>
+
+                Complaints
+
+            </a>
+
+
+            <a href="{{ url_for('verify_complaints') }}"
+               class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+
+                <i class="fas fa-check-circle w-5"></i>
+
+                Verify Complaints
+
+            </a>
+            <a href="{{ url_for('departments') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+
+                <i class="fas fa-building w-5"></i>
+
+                Departments
+
+            </a>
+
+            <a href="{{ url_for('admin_department_heads') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+
+                <i class="fas fa-user-tie w-5"></i>
+
+                Department Heads
+
+            </a>
+
+
+            <a href="{{ url_for('reports') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+
+                <i class="fas fa-chart-bar w-5"></i>
+
+                Reports
+
+            </a>
+
+
+            <a href="{{ url_for('users') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users w-5"></i>
+                Users
+            </a>
+        </nav>
+
+
+        <!-- Logout -->
+
+        <div class="px-3 py-4 border-t border-blue-900/50">
+
+            <a href="{{ url_for('logout') }}"
+               class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300">
+
+                <i class="fas fa-sign-out-alt w-5"></i>
+
+                Logout
+
+            </a>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- Overlay -->
+
+    <div id="overlay"
+         class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"
+         onclick="toggleSidebar()">
+    </div>
+
+
+
+    <!-- =============================== -->
+    <!-- MAIN CONTENT -->
+    <!-- =============================== -->
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+
+        <!-- Header -->
+
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+
+            <div class="flex items-center justify-between px-4 sm:px-6 py-4">
+
+
+                <div class="flex items-center gap-3">
+
+                    <button onclick="toggleSidebar()"
+                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+
+                        <i class="fas fa-bars"></i>
+
+                    </button>
+
+
+                    <div>
+
+                        <h2 class="text-xl font-bold text-gray-800">
+                            Verify Complaints
+                        </h2>
+
+                        <p class="text-xs text-gray-500 mt-1">
+                            Review newly submitted complaints before assigning them
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="flex items-center gap-3">
+
+                    <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+
+                        <i class="fas fa-user text-blue-600"></i>
+
+                    </div>
+
+                    <span class="text-sm font-medium text-gray-700 hidden sm:block">
+                        Admin
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =============================== -->
+        <!-- PAGE CONTENT -->
+        <!-- =============================== -->
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">
+                        Complaint Verification & Duplicate Review
+                    </h3>
+                    <p class="text-gray-500 text-sm mt-1">
+                        Review newly submitted citizen complaints, confirm duplicate reports, and assign validated issues to departments.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Flash Notifications -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-6 p-4 rounded-xl border flex items-start gap-3 shadow-sm {% if category == 'error' %}bg-red-50 border-red-200 text-red-800{% elif category == 'warning' %}bg-amber-50 border-amber-200 text-amber-800{% else %}bg-emerald-50 border-emerald-200 text-emerald-900{% endif %}">
+                            <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-600{% elif category == 'warning' %}fa-exclamation-triangle text-amber-600{% else %}fa-check-circle text-emerald-600{% endif %} text-lg mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1 text-sm leading-relaxed">
+                                {{ message|safe }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Summary Filter Tabs -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 scrollbar-thin">
+                <a href="{{ url_for('verify_complaints', tab='all') }}"
+                   class="px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap {% if not tab_filter or tab_filter == 'all' %}bg-[#0B1C3D] text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-layer-group"></i>
+                   <span>All Review Queue</span>
+                   <span class="px-2 py-0.5 rounded-full text-[11px] {% if not tab_filter or tab_filter == 'all' %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-700{% endif %} font-bold">{{ complaints|length }}</span>
+                </a>
+                <a href="{{ url_for('verify_complaints', tab='candidates') }}"
+                   class="px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap {% if tab_filter == 'candidates' %}bg-amber-600 text-white shadow-sm shadow-amber-200{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-copy"></i>
+                   <span>Potential Duplicates</span>
+                   <span class="px-2 py-0.5 rounded-full text-[11px] {% if tab_filter == 'candidates' %}bg-white/20 text-white{% else %}bg-amber-50 text-amber-800{% endif %} font-bold">{{ potential_duplicate_count }}</span>
+                </a>
+                <a href="{{ url_for('verify_complaints', tab='pending') }}"
+                   class="px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap {% if tab_filter == 'pending' %}bg-blue-600 text-white shadow-sm shadow-blue-200{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-clock"></i>
+                   <span>Standard Pending</span>
+                   <span class="px-2 py-0.5 rounded-full text-[11px] {% if tab_filter == 'pending' %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-700{% endif %} font-bold">{{ pending_count }}</span>
+                </a>
+                <a href="{{ url_for('verify_complaints', tab='confirmed') }}"
+                   class="px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap {% if tab_filter == 'confirmed' %}bg-emerald-600 text-white shadow-sm shadow-emerald-200{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-link"></i>
+                   <span>Confirmed Duplicates</span>
+                   <span class="px-2 py-0.5 rounded-full text-[11px] {% if tab_filter == 'confirmed' %}bg-white/20 text-white{% else %}bg-emerald-50 text-emerald-800{% endif %} font-bold">{{ confirmed_duplicate_count }}</span>
+                </a>
+            </div>
+
+            <!-- ================================= -->
+            <!-- DYNAMIC COMPLAINT LIST -->
+            <!-- ================================= -->
+
+            {% if complaints %}
+
+                <div class="space-y-5">
+
+                    {% for c in complaints %}
+
+                    <div class="bg-white rounded-xl shadow-sm border {% if c.is_duplicate %}border-amber-300 ring-1 ring-amber-200 bg-amber-50/20{% elif c.parent_id and c.similarity_score and c.similarity_score >= 50 %}border-amber-200{% else %}border-gray-100{% endif %} p-5 transition">
+
+                        <!-- Complaint top -->
+                        <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+
+                            <div class="flex-1">
+
+                                <!-- ID + status -->
+                                <div class="flex flex-wrap items-center gap-3 mb-3">
+                                    <span class="font-bold text-gray-900 text-base">
+                                        Complaint #{{ c.complaint_id }}
+                                    </span>
+
+                                    {% if c.is_duplicate %}
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+                                            <i class="fas fa-link text-[10px]"></i> Confirmed Duplicate of #{{ c.parent_id }}
+                                        </span>
+                                    {% elif c.parent_id and c.similarity_score and c.similarity_score >= 50 %}
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5 animate-pulse">
+                                            <i class="fas fa-exclamation-triangle text-[10px]"></i> Duplicate Candidate Detected
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                            Pending Verification
+                                        </span>
+                                    {% endif %}
+
+                                    {% if c.priority == "High" %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">High Priority</span>
+                                    {% elif c.priority == "Medium" %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Medium Priority</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Details Grid -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 mb-3 bg-gray-50/70 p-3 rounded-lg border border-gray-100">
+                                    <p><strong>Title:</strong> {{ c.title }}</p>
+                                    <p><strong>Category:</strong> <span class="font-medium text-blue-700">{{ c.category }}</span></p>
+                                    <p><strong>Location:</strong> {{ c.location }}</p>
+                                    <p><strong>Submitted by:</strong> {{ c.citizen_name }}</p>
+                                    <p class="text-xs text-gray-500 sm:col-span-2">
+                                        <strong>Registered Date:</strong> {{ c.created_at.strftime('%d %b %Y, %I:%M %p') if c.created_at else '—' }}
+                                    </p>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="mb-4">
+                                    <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Issue Description:</p>
+                                    <p class="text-sm text-gray-700 bg-white p-3 rounded-lg border border-gray-200 leading-relaxed">
+                                        {{ c.description }}
+                                    </p>
+                                </div>
+
+                                <!-- ======================================================= -->
+                                <!-- DUPLICATE MATCH & DECISION WORKFLOW PANEL -->
+                                <!-- ======================================================= -->
+                                {% if c.parent_id %}
+                                <div class="p-4 rounded-xl border shadow-sm {% if c.is_duplicate %}bg-amber-50/70 border-amber-300{% else %}bg-gradient-to-br from-amber-50/90 to-yellow-50/60 border-amber-300{% endif %}">
+                                    
+                                    <!-- Match Header & Similarity Breakdown -->
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-amber-200">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-7 h-7 rounded-lg {% if c.is_duplicate %}bg-amber-600 text-white{% else %}bg-amber-500 text-white{% endif %} flex items-center justify-center text-xs shadow-sm">
+                                                <i class="fas {% if c.is_duplicate %}fa-link{% else %}fa-copy{% endif %}"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-sm {% if c.is_duplicate %}text-amber-900{% else %}text-amber-900{% endif %}">
+                                                    {% if c.is_duplicate %}
+                                                        Confirmed Duplicate Record
+                                                    {% else %}
+                                                        Potential Duplicate Match Detected at Submission
+                                                    {% endif %}
+                                                </h4>
+                                                <p class="text-[11px] text-amber-700">
+                                                    {% if c.is_duplicate %}
+                                                        Preserving Complaint #{{ c.parent_id }} as the active primary record.
+                                                    {% else %}
+                                                        Candidate match detected via multi-factor text & geospatial similarity.
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Similarity Score Badges -->
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            {% if c.similarity_score is not none %}
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-bold {% if c.similarity_score >= 75 %}bg-red-100 text-red-800 border border-red-200{% else %}bg-amber-100 text-amber-800 border border-amber-200{% endif %}">
+                                                <i class="fas fa-bolt mr-1"></i>{{ c.similarity_score }}% Match
+                                            </span>
+                                            {% endif %}
+                                            {% if c.image_similarity is not none %}
+                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-white/90 text-purple-700 border border-purple-200 shadow-sm" title="CLIP Computer Vision Photo Similarity">
+                                                <i class="fas fa-camera text-purple-600 mr-1"></i>{{ c.image_similarity }}% Photo
+                                            </span>
+                                            {% endif %}
+                                            {% if c.text_similarity is not none %}
+                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-white/90 text-blue-700 border border-blue-200 shadow-sm" title="TF-IDF Text Similarity">
+                                                <i class="fas fa-align-left text-blue-600 mr-1"></i>{{ c.text_similarity }}% Text
+                                            </span>
+                                            {% endif %}
+                                            {% if c.location_distance_m is not none %}
+                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-white/80 text-gray-700 border border-amber-200">
+                                                <i class="fas fa-map-marker-alt text-red-500 mr-1"></i>{{ c.location_distance_m }}m away
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- SUSPICIOUS PHOTO REUSE / LOCATION MISMATCH ALERT -->
+                                    {% if c.is_photo_location_mismatch %}
+                                    <div class="mb-3.5 p-3.5 rounded-xl border border-red-300 bg-red-50 text-red-950 shadow-sm flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                                            <i class="fas fa-exclamation-triangle text-sm"></i>
+                                        </div>
+                                        <div class="flex-1 text-xs">
+                                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                                <span class="font-bold text-red-900 text-sm">⚠️ Suspicious Photo Reuse Alert: Same Photo at Different Location</span>
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-200 text-red-900">
+                                                    <i class="fas fa-camera mr-1"></i>{{ c.image_similarity }}% Photo Match
+                                                </span>
+                                                {% if c.location_distance_m is not none %}
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
+                                                    <i class="fas fa-map-marker-alt mr-1"></i>{{ (c.location_distance_m / 1000)|round(2) }} km apart
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="text-red-900 leading-relaxed">
+                                                The photo submitted for Complaint #{{ c.complaint_id }} matches the image in Complaint #{{ c.parent_id }} ({{ c.image_similarity }}% similarity), but was reported at a <strong>different location</strong> ("{{ c.location }}" vs "{{ c.parent_location }}").
+                                            </p>
+                                            <p class="text-red-800 mt-1.5 font-medium">
+                                                <i class="fas fa-info-circle mr-1"></i><strong>Recommended Action:</strong> Compare both photos and locations below. If this is a fake or recycled photo, click <strong>Reject (Invalid)</strong> to reject the complaint and issue a penalty strike to the citizen. If it represents a distinct genuine issue, click <strong>Keep Separate</strong> and <strong>Verify & Dispatch</strong>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Side-by-Side Comparison Box -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
+                                        <!-- Current New Report -->
+                                        <div class="p-3 bg-white/90 rounded-lg border border-amber-200/80 flex flex-col justify-between">
+                                            <div>
+                                                <div class="font-bold text-gray-700 mb-1 flex items-center justify-between">
+                                                    <span>New Complaint (#{{ c.complaint_id }})</span>
+                                                    <span class="text-[10px] text-blue-600 uppercase font-semibold">Under Review</span>
+                                                </div>
+                                                <p class="text-gray-900 font-medium truncate">"{{ c.title }}"</p>
+                                                <p class="text-gray-500 mt-1 truncate"><i class="fas fa-map-pin mr-1 text-gray-400"></i>{{ c.location }}</p>
+                                                <p class="text-gray-400 mt-1 text-[11px]">Reported by {{ c.citizen_name }}</p>
+                                            </div>
+                                            {% if c.image_path %}
+                                            <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center gap-2">
+                                                <img src="{{ url_for('uploaded_file', filename=c.image_path.replace('\\', '/').split('/')[-1]) }}"
+                                                     alt="New Complaint Photo" class="w-12 h-12 object-cover rounded border border-gray-200">
+                                                <div class="text-[11px] text-gray-500">
+                                                    <span class="font-medium text-gray-700">Uploaded Photo</span>
+                                                    <a href="{{ url_for('uploaded_file', filename=c.image_path.replace('\\', '/').split('/')[-1]) }}" target="_blank" class="block text-blue-600 hover:underline">View full image</a>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Existing Main Complaint -->
+                                        <div class="p-3 bg-white/90 rounded-lg border border-amber-200/80 flex flex-col justify-between">
+                                            <div>
+                                                <div class="font-bold text-gray-700 mb-1 flex items-center justify-between">
+                                                    <span>Original Complaint (#{{ c.parent_id }})</span>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">{{ c.parent_status }}</span>
+                                                </div>
+                                                <p class="text-gray-900 font-medium truncate">"{{ c.parent_title }}"</p>
+                                                <p class="text-gray-500 mt-1 truncate"><i class="fas fa-map-pin mr-1 text-gray-400"></i>{{ c.parent_location }}</p>
+                                                <div class="mt-1 flex items-center justify-between">
+                                                    <a href="{{ url_for('admin_complaints', complaint_id=c.parent_id) }}" target="_blank"
+                                                       class="text-blue-600 hover:underline font-semibold text-[11px] flex items-center gap-1">
+                                                        Inspect Main Complaint <i class="fas fa-external-link-alt text-[9px]"></i>
+                                                    </a>
+                                                    <span class="text-gray-400 text-[10px]">Primary Active Record</span>
+                                                </div>
+                                            </div>
+                                            {% if c.parent_image_path %}
+                                            <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center gap-2">
+                                                <img src="{{ url_for('uploaded_file', filename=c.parent_image_path.replace('\\', '/').split('/')[-1]) }}"
+                                                     alt="Original Complaint Photo" class="w-12 h-12 object-cover rounded border border-gray-200">
+                                                <div class="text-[11px] text-gray-500">
+                                                    <span class="font-medium text-gray-700">Original Photo</span>
+                                                    <a href="{{ url_for('uploaded_file', filename=c.parent_image_path.replace('\\', '/').split('/')[-1]) }}" target="_blank" class="block text-blue-600 hover:underline">View full image</a>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Administrator Duplicate Decision Actions (Step 3 & 4) -->
+                                    <div class="pt-2 border-t border-amber-200 flex flex-wrap items-center justify-between gap-3">
+                                        {% if not c.is_duplicate %}
+                                            <div class="text-xs text-amber-800">
+                                                <span class="font-semibold">Action Required:</span> Choose whether to confirm this report as a duplicate or treat as a separate problem.
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <!-- Action Choice 1: Confirm Duplicate -->
+                                                <form method="POST" action="{{ url_for('verify_complaints') }}" class="inline">
+                                                    <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                                    <input type="hidden" name="parent_id" value="{{ c.parent_id }}">
+                                                    <input type="hidden" name="action" value="confirm_duplicate">
+                                                    <button type="submit"
+                                                            onclick="return confirm('Confirm Complaint #{{ c.complaint_id }} as a duplicate of Complaint #{{ c.parent_id }}?\n\n• Complaint #{{ c.parent_id }} will remain the MAIN active record.\n• Complaint #{{ c.complaint_id }} will be linked to it and will NOT proceed independently to department assignment or maintenance.');"
+                                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm transition">
+                                                        <i class="fas fa-link"></i> Confirm Duplicate
+                                                    </button>
+                                                </form>
+
+                                                <!-- Action Choice 2: Keep Separate -->
+                                                <form method="POST" action="{{ url_for('verify_complaints') }}" class="inline">
+                                                    <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                                    <input type="hidden" name="action" value="keep_separate">
+                                                    <button type="submit"
+                                                            onclick="return confirm('Mark Complaint #{{ c.complaint_id }} as a distinct, separate complaint?\n\nIt will proceed independently through standard department verification.');"
+                                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg shadow-sm transition">
+                                                        <i class="fas fa-code-branch"></i> Keep Separate
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <!-- Already confirmed duplicate: Explain lock & allow reverting -->
+                                            <div class="flex-1 text-xs text-amber-800 flex items-center gap-2">
+                                                <i class="fas fa-shield-alt text-amber-600 text-sm flex-shrink-0"></i>
+                                                <span><strong>Confirmed Duplicate:</strong> Preserved Main Complaint #{{ c.parent_id }} as primary. Downstream department dispatch is halted on this record.</span>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('verify_complaints') }}" class="inline">
+                                                <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                                <input type="hidden" name="action" value="keep_separate">
+                                                <button type="submit"
+                                                        onclick="return confirm('Revert Complaint #{{ c.complaint_id }} to an independent complaint? It will be unlocked for standard verification.');"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded font-semibold transition">
+                                                    <i class="fas fa-unlink text-gray-500"></i> Revert to Independent
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                            </div>
+
+                            <!-- Complaint Image (if provided) & Computer Vision Verification Badges -->
+                            {% if c.image_path %}
+                            <div class="flex-shrink-0 flex flex-col items-center">
+                                <a href="{{ url_for('uploaded_file', filename=c.image_path.replace('\\', '/').split('/')[-1]) }}" target="_blank" class="block relative group">
+                                    <img src="{{ url_for('uploaded_file', filename=c.image_path.replace('\\', '/').split('/')[-1]) }}"
+                                         alt="Complaint Image"
+                                         class="w-36 h-28 object-cover rounded-xl border border-gray-200 shadow-sm group-hover:opacity-90 transition">
+                                    {% if c.is_ai_suspected %}
+                                    <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500 text-white shadow-md flex items-center gap-1">
+                                        <i class="fas fa-robot"></i> AI Flagged
+                                    </span>
+                                    {% endif %}
+                                </a>
+                                <span class="block text-[11px] text-gray-400 text-center mt-1">Click to expand</span>
+
+                                <!-- CV Verification Pills -->
+                                <div class="mt-2 flex flex-col gap-1 w-36">
+                                    {% if c.image_relevance_status %}
+                                        {% if c.image_relevance_status == 'Relevant' %}
+                                        <span class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="CLIP zero-shot relevance match">
+                                            <i class="fas fa-check text-[10px]"></i> Match: {{ c.image_relevance_score or '100' }}%
+                                        </span>
+                                        {% elif c.image_relevance_status == 'Uncertain' %}
+                                        <span class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="Borderline confidence score">
+                                            <i class="fas fa-question text-[10px]"></i> Uncertain ({{ c.image_relevance_score }}%)
+                                        </span>
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if c.is_ai_suspected %}
+                                    <span class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Pretrained detector flagged statistical AI generation patterns. Disclaimer: Not 100% conclusive.">
+                                        <i class="fas fa-robot text-amber-600"></i> AI: {{ c.ai_detection_score }}%
+                                    </span>
+                                    {% elif c.ai_detection_score is not none %}
+                                    <span class="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200" title="Authentic camera photograph verified">
+                                        <i class="fas fa-camera text-slate-500 text-[10px]"></i> Authentic ({{ (100 - c.ai_detection_score)|round(1) }}%)
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Action Column (Right Side) -->
+                            <div class="flex flex-wrap lg:flex-col gap-2 min-w-[150px]">
+                                <!-- View Complaint Details -->
+                                <a href="{{ url_for('admin_complaints', complaint_id=c.complaint_id) }}"
+                                   class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg text-center transition flex items-center justify-center gap-1.5">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+
+                                {% if c.is_duplicate %}
+                                    <!-- Duplicate is locked from proceeding independently -->
+                                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                                        <span class="text-xs font-bold text-amber-800 block">
+                                            <i class="fas fa-lock mr-1"></i>Duplicate Locked
+                                        </span>
+                                        <span class="text-[11px] text-amber-600 block mt-0.5">
+                                            Resolves via Main #{{ c.parent_id }}
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <!-- Standard Verify Action -->
+                                    <form method="POST" action="{{ url_for('verify_complaints') }}">
+                                        <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                        <input type="hidden" name="action" value="verify">
+                                        <button type="submit"
+                                                onclick="return confirm('Verify Complaint #{{ c.complaint_id }} and dispatch to municipal department?');"
+                                                class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                                            <i class="fas fa-check"></i> Verify & Dispatch
+                                        </button>
+                                    </form>
+
+                                    <!-- Reject Action -->
+                                    <form method="POST" action="{{ url_for('verify_complaints') }}">
+                                        <input type="hidden" name="complaint_id" value="{{ c.complaint_id }}">
+                                        <input type="hidden" name="action" value="reject">
+                                        <button type="submit"
+                                                onclick="return confirm('Reject Complaint #{{ c.complaint_id }} as spam/invalid? This will issue a strike to the citizen.');"
+                                                class="w-full px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5">
+                                            <i class="fas fa-times"></i> Reject (Invalid)
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+            {% else %}
+
+
+                <!-- ================================= -->
+                <!-- NO PENDING COMPLAINTS -->
+                <!-- ================================= -->
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+
+
+                    <div class="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+
+                        <i class="fas fa-check-circle text-green-600 text-3xl"></i>
+
+                    </div>
+
+
+                    <h3 class="text-lg font-semibold text-gray-800">
+
+                        No Complaints Awaiting Verification
+
+                    </h3>
+
+
+                    <p class="text-gray-500 text-sm mt-2">
+
+                        All submitted complaints have been reviewed.
+
+                    </p>
+
+
+                    <a href="{{ url_for('admin_dashboard') }}"
+                       class="inline-block mt-5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+
+                        Back to Dashboard
+
+                    </a>
+
+
+                </div>
+
+
+            {% endif %}
+
+
+        </main>
+
+    </div>
+
+</div>
+
+
+
+<!-- Sidebar JavaScript -->
+
+<script>
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const overlay = document.getElementById('overlay');
+    const isDesktop = window.innerWidth >= 1024;
+
+    if (isDesktop) {
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.remove('lg:ml-0');
+                mainContent.classList.add('lg:ml-64');
+            }
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.remove('lg:ml-64');
+                mainContent.classList.add('lg:ml-0');
+            }
+        }
+    } else {
+        sidebar.classList.toggle('-translate-x-full');
+        if (overlay) overlay.classList.toggle('hidden');
+    }
+}
+
+</script>
+
+
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+
+</html>

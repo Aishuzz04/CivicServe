@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Work | Department Head</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .sidebar-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.08);
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+<div class="flex min-h-screen overflow-x-hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Department Head</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1">
+            <a href="{{ url_for('department_head_dashboard') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i>
+                Dashboard
+            </a>
+            <a href="{{ url_for('department_head_complaints') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i>
+                Complaints
+            </a>
+            <a href="{{ url_for('department_head_assign_complaints') }}"
+               class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-tasks w-5"></i>
+                Assign Work
+            </a>
+            <a href="{{ url_for('department_head_verify_inspections') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-check w-5"></i>
+                Verify Inspections
+            </a>
+            <a href="{{ url_for('department_head_engineers') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-hard-hat w-5"></i>
+                Engineers
+            </a>
+            <a href="{{ url_for('department_head_field_workers') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users-cog w-5"></i>
+                Field Workers
+            </a>
+            <a href="{{ url_for('department_head_reports') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i>
+                Reports
+            </a>
+            <a href="{{ url_for('department_head_profile') }}"
+               class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i>
+                Profile
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Main -->
+    <div id="mainContent" class="flex-1 lg:ml-64 min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ease-in-out">
+        <!-- Header -->
+        <header class="bg-[#0B1C3D] text-white sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <button onclick="toggleSidebar()" class="p-2 text-white hover:bg-white/10 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 border-l border-white/20 pl-4">
+                        <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">
+                                {{ first_name }} {{ last_name | default('') }}
+                            </p>
+                            <p class="text-xs text-blue-200">
+                                Department Head
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 rounded-lg text-sm">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </header>
+        <!-- Content -->
+        <main class="p-4 sm:p-6 lg:p-8">
+            <div class="mb-6">
+                <a href="{{ url_for('department_head_complaints') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i>
+                    Back to Complaints
+                </a>
+            </div>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="max-w-3xl mx-auto mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif category == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas {% if category == 'success' %}fa-check-circle text-emerald-500{% elif category == 'info' %}fa-info-circle text-blue-500{% else %}fa-exclamation-circle text-red-500{% endif %} text-base"></i>
+                                    <span>{{ message | safe }}</span>
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            <div class="max-w-3xl mx-auto">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        Assign Work
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Choose how this complaint should be handled.
+                    </p>
+                </div>
+                <!-- Complaint Information -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">
+                                Complaint
+                            </p>
+                            <h3 class="text-lg font-semibold text-gray-800">
+                                #{{ complaint[0] }} - {{ complaint[1] }}
+                            </h3>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            {{ complaint[6] }}
+                        </span>
+                    </div>
+                    <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">
+                                Location
+                            </p>
+                            <p class="text-sm text-gray-700 mt-1">
+                                {{ complaint[3] }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">
+                                Priority
+                            </p>
+                            <p class="text-sm text-gray-700 mt-1">
+                                {{ complaint[4] }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-xs text-gray-500">
+                            Description
+                        </p>
+                        <p class="text-sm text-gray-700 mt-1">
+                            {{ complaint[2] }}
+                        </p>
+                    </div>
+                </div>
+                <!-- Assignment Form -->
+                <form method="POST"
+                      class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            How should this complaint be handled?
+                        </label>
+                        <div class="space-y-3">
+                            <!-- Field Worker -->
+                            <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="radio"
+                                       name="assignment_type"
+                                       value="field_worker"
+                                       class="mt-1"
+                                       onchange="showAssignment('field_worker')"
+                                       required>
+                                <div>
+                                    <p class="font-medium text-gray-800">
+                                        Direct Field Work
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        For simple or routine work that does not require technical inspection.
+                                    </p>
+                                </div>
+                            </label>
+                            <!-- Engineer -->
+                            <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="radio"
+                                       name="assignment_type"
+                                       value="engineer"
+                                       class="mt-1"
+                                       onchange="showAssignment('engineer')">
+                                <div>
+                                    <p class="font-medium text-gray-800">
+                                        Engineer Inspection
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        For technical, complex or major work that requires inspection.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Field Worker Selection -->
+                    <div id="fieldWorkerSection"
+                         class="hidden mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Select Field Worker
+                        </label>
+                        <select name="assigned_user_id"
+                                id="fieldWorkerSelect"
+                                disabled
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">
+                                Select field worker
+                            </option>
+                            {% for worker in field_workers %}
+                            <option value="{{ worker[0] }}">
+                                {{ worker[1] }} {{ worker[2] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Engineer Selection -->
+                    <div id="engineerSection"
+                         class="hidden mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Select Engineer
+                        </label>
+                        <select name="assigned_user_id"
+                                id="engineerSelect"
+                                disabled
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">
+                                Select engineer
+                            </option>
+                            {% for engineer in engineers %}
+                            <option value="{{ engineer[0] }}">
+                                {{ engineer[1] }} {{ engineer[2] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Submit -->
+                    <div class="flex justify-end gap-3">
+                        <a href="{{ url_for('department_head_complaints') }}"
+                           class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                            <i class="fas fa-tasks mr-2"></i>
+                            Assign Work
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const overlay = document.getElementById('overlay');
+    const isDesktop = window.innerWidth >= 1024;
+
+    if (isDesktop) {
+        if (sidebar.classList.contains('sidebar-hidden')) {
+            sidebar.classList.remove('sidebar-hidden');
+            if (mainContent) {
+                mainContent.classList.remove('content-expanded');
+            }
+        } else {
+            sidebar.classList.add('sidebar-hidden');
+            if (mainContent) {
+                mainContent.classList.add('content-expanded');
+            }
+        }
+    } else {
+        sidebar.classList.toggle('sidebar-mobile-show');
+        if (overlay) overlay.classList.toggle('hidden');
+    }
+}
+
+function showAssignment(type) {
+    const fieldWorkerSection = document.getElementById("fieldWorkerSection");
+    const engineerSection = document.getElementById("engineerSection");
+    const fieldWorkerSelect = document.getElementById("fieldWorkerSelect");
+    const engineerSelect = document.getElementById("engineerSelect");
+    if (type === "field_worker") {
+        fieldWorkerSection.classList.remove("hidden");
+        engineerSection.classList.add("hidden");
+        fieldWorkerSelect.required = true;
+        fieldWorkerSelect.disabled = false;
+        engineerSelect.required = false;
+        engineerSelect.disabled = true;
+        engineerSelect.value = "";
+    }
+    if (type === "engineer") {
+        engineerSection.classList.remove("hidden");
+        fieldWorkerSection.classList.add("hidden");
+        engineerSelect.required = true;
+        engineerSelect.disabled = false;
+        fieldWorkerSelect.required = false;
+        fieldWorkerSelect.disabled = true;
+        fieldWorkerSelect.value = "";
+    }
+}
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

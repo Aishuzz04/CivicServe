@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Department Assignment Error</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center px-4">
+
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+
+            <!-- Icon -->
+
+            <div class="flex justify-center mb-4">
+
+                <div class="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
+
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+
+                </div>
+
+            </div>
+
+
+            <!-- Title -->
+
+            <h2 class="text-xl font-semibold text-gray-800 text-center mb-3">
+
+                Department Not Found
+
+            </h2>
+
+
+            <!-- Message -->
+
+            <p class="text-gray-600 text-center leading-relaxed mb-6">
+
+                {{ message }}
+
+            </p>
+
+
+            <!-- OK -->
+
+            <div class="flex justify-center">
+
+                <button
+                    onclick="goBack()"
+                    class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+
+                    OK
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        function goBack() {
+
+            window.location.href = "{{ url_for('verify_complaints') }}";
+
+        }
+
+    </script>
+
+</body>
+
+</html>

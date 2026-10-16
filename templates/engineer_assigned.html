@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Assigned Complaints | Engineer Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Engineer Portal</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('engineer_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('engineer_assigned') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-clipboard-list w-5"></i> My Assignments
+            </a>
+            <a href="{{ url_for('engineer_inspection') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search-location w-5"></i> Inspections
+            </a>
+            <a href="{{ url_for('engineer_inspection_reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-file-waveform w-5"></i> Inspection Reports
+            </a>
+        </nav>
+
+        <div class="px-3 py-4 border-t border-blue-900/40">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Top Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="text-lg font-semibold text-gray-800">Assigned Complaints</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium text-gray-800">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-gray-500">Field Engineer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-6 space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-xl flex items-center justify-between text-sm {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas {% if category == 'error' %}fa-circle-exclamation text-red-500{% elif category == 'success' %}fa-circle-check text-emerald-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                                    <span>{{ message|safe }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Page Title -->
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">My Assigned Complaints</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">Complaints assigned to you with location, category, priority, assignment date and status</p>
+                </div>
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">
+                        <i class="fas fa-check-double"></i> Total: {{ assignments|length }} Complaints
+                    </span>
+                </div>
+            </div>
+
+            <!-- Filters Form -->
+            <form method="GET" action="{{ url_for('engineer_assigned') }}" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-3">
+                <div class="flex-1 relative">
+                    <i class="fas fa-search absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                    <input type="text" name="search" value="{{ search_query|default('') }}" placeholder="Search by Complaint ID, title, category or location..."
+                        class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <select name="status" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">All Statuses</option>
+                    <option value="Assigned" {% if current_status == 'Assigned' %}selected{% endif %}>Assigned</option>
+                    <option value="Inspection" {% if current_status == 'Inspection' %}selected{% endif %}>Under Inspection</option>
+                    <option value="Maintenance" {% if current_status == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+                    <option value="Completed" {% if current_status == 'Completed' %}selected{% endif %}>Completed</option>
+                </select>
+
+                <select name="priority" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">All Priorities</option>
+                    <option value="High" {% if current_priority == 'High' %}selected{% endif %}>High Priority</option>
+                    <option value="Medium" {% if current_priority == 'Medium' %}selected{% endif %}>Medium Priority</option>
+                    <option value="Low" {% if current_priority == 'Low' %}selected{% endif %}>Low Priority</option>
+                </select>
+
+                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <i class="fas fa-filter"></i> Apply Filter
+                </button>
+
+                {% if search_query or current_status or current_priority %}
+                <a href="{{ url_for('engineer_assigned') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1">
+                    <i class="fas fa-rotate-left"></i> Clear
+                </a>
+                {% endif %}
+            </form>
+
+            <!-- Assignments Table -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="text-left px-5 py-3.5 font-semibold">Complaint ID</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Title</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Category</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Location</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Priority</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Current Status</th>
+                                <th class="text-left px-5 py-3.5 font-semibold">Assignment Date</th>
+                                <th class="text-center px-5 py-3.5 font-semibold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+
+                            {% if assignments %}
+                                {% for a in assignments %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-5 py-4 font-bold text-gray-900">#{{ a.complaint_id }}</td>
+                                    <td class="px-5 py-4 font-medium text-gray-800">
+                                        <a href="{{ url_for('engineer_view_complaint', complaint_id=a.complaint_id) }}" class="text-blue-600 hover:underline">
+                                            {{ a.title }}
+                                        </a>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                                            <i class="fas fa-tag mr-1 text-[10px] text-slate-400"></i>{{ a.category or 'General' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-4 text-gray-700">
+                                        <span class="inline-flex items-center gap-1.5">
+                                            <i class="fas fa-location-dot text-red-500 text-xs"></i>
+                                            {{ a.location }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        {% if a.priority == 'High' or a.priority == 'Critical' %}
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">High</span>
+                                        {% elif a.priority == 'Medium' %}
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Medium</span>
+                                        {% else %}
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        {% if a.status == 'Assigned' %}
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                                                <i class="fas fa-clock text-[10px]"></i> Assigned
+                                            </span>
+                                        {% elif a.status == 'Inspection' %}
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
+                                                <i class="fas fa-search text-[10px]"></i> Inspection
+                                            </span>
+                                        {% elif a.status == 'Maintenance' %}
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                                                <i class="fas fa-tools text-[10px]"></i> Maintenance
+                                            </span>
+                                        {% elif a.status == 'Completed' %}
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                <i class="fas fa-check text-[10px]"></i> Completed
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{{ a.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-4 text-gray-500 font-mono text-xs">{{ a.assigned_date }}</td>
+                                    <td class="px-5 py-4 text-center">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <a href="{{ url_for('engineer_view_complaint', complaint_id=a.complaint_id) }}"
+                                               class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm"
+                                               title="View Complaint & Record Inspection">
+                                                <i class="fas fa-search-location"></i> Inspect
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="px-5 py-16 text-center text-gray-500">
+                                        <i class="fas fa-clipboard-list text-5xl text-gray-300 mb-3 block"></i>
+                                        <p class="font-semibold text-base text-gray-700">No complaints matching your criteria</p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {% if search_query or current_status or current_priority %}
+                                                Try adjusting your search filters or <a href="{{ url_for('engineer_assigned') }}" class="text-blue-600 underline">view all assigned complaints</a>.
+                                            {% else %}
+                                                Only complaints assigned to your engineer account by Department Heads will appear here.
+                                            {% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

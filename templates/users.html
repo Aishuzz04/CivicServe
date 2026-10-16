@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users Directory & Details | Administrator Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .sidebar-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.08);
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Administrator Panel</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> Complaints
+            </a>
+            <a href="{{ url_for('verify_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-check-circle w-5"></i> Verify Complaints
+            </a>
+            <a href="{{ url_for('departments') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-building w-5"></i> Departments
+            </a>
+            <a href="{{ url_for('admin_department_heads') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user-tie w-5"></i> Department Heads
+            </a>
+            <a href="{{ url_for('reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i> Reports
+            </a>
+            <!-- ACTIVE: Users -->
+            <a href="{{ url_for('users') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-users w-5"></i> Users
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/50">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay -->
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Users Directory & Profile Details</h2>
+                        <p class="text-xs sm:text-sm text-gray-500">View complete account details, departmental roles, and user statistics</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash Notifications -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-6 p-4 rounded-xl border flex items-start gap-3 shadow-sm {% if category == 'error' %}bg-red-50 border-red-200 text-red-800{% else %}bg-emerald-50 border-emerald-200 text-emerald-900{% endif %}">
+                            <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-600{% else %}fa-check-circle text-emerald-600{% endif %} text-lg mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1 text-sm leading-relaxed">
+                                {{ message|safe }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Stats Overview Cards (Compact) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-3.5">
+                <div class="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Total Users</p>
+                            <p class="text-lg font-bold text-gray-800 leading-tight mt-0.5">{{ total_users }}</p>
+                        </div>
+                        <div class="w-7 h-7 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xs">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-teal-600 uppercase tracking-wider">Dept Heads</p>
+                            <p class="text-lg font-bold text-teal-700 leading-tight mt-0.5">{{ dept_head_count }}</p>
+                        </div>
+                        <div class="w-7 h-7 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center text-xs">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">Engineers</p>
+                            <p class="text-lg font-bold text-emerald-700 leading-tight mt-0.5">{{ engineer_count }}</p>
+                        </div>
+                        <div class="w-7 h-7 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xs">
+                            <i class="fas fa-helmet-safety"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-amber-600 uppercase tracking-wider">Maintenance</p>
+                            <p class="text-lg font-bold text-amber-700 leading-tight mt-0.5">{{ maintenance_count }}</p>
+                        </div>
+                        <div class="w-7 h-7 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xs">
+                            <i class="fas fa-wrench"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">Citizens</p>
+                            <p class="text-lg font-bold text-blue-700 leading-tight mt-0.5">{{ citizen_count }}</p>
+                        </div>
+                        <div class="w-7 h-7 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xs">
+                            <i class="fas fa-user-group"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-green-600 uppercase tracking-wider">Active</p>
+                            <p class="text-lg font-bold text-green-700 leading-tight mt-0.5">{{ active_users_count }}</p>
+                        </div>
+                        <div class="w-7 h-7 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-xs">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Category Navigation Tabs (Clean Wrap, No Horizontal Scroll) -->
+            <div class="flex flex-wrap items-center gap-1.5 mb-3">
+                <a href="{{ url_for('users', page=1, search=search, status=selected_status, sort=selected_sort) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap {% if not selected_role %}bg-[#0B1C3D] text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-users text-[11px]"></i>
+                   <span>All Accounts</span>
+                   <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if not selected_role %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-700{% endif %} font-bold">{{ total_users }}</span>
+                </a>
+                <a href="{{ url_for('users', page=1, role='Department Head', search=search, status=selected_status, sort=selected_sort) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap {% if selected_role == 'Department Head' %}bg-teal-600 text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-user-tie text-[11px]"></i>
+                   <span>Department Heads</span>
+                   <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if selected_role == 'Department Head' %}bg-white/20 text-white{% else %}bg-teal-50 text-teal-700{% endif %} font-bold">{{ dept_head_count }}</span>
+                </a>
+                <a href="{{ url_for('users', page=1, role='Engineer', search=search, status=selected_status, sort=selected_sort) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap {% if selected_role == 'Engineer' %}bg-emerald-600 text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-helmet-safety text-[11px]"></i>
+                   <span>Municipal Engineers</span>
+                   <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if selected_role == 'Engineer' %}bg-white/20 text-white{% else %}bg-emerald-50 text-emerald-700{% endif %} font-bold">{{ engineer_count }}</span>
+                </a>
+                <a href="{{ url_for('users', page=1, role='Maintenance', search=search, status=selected_status, sort=selected_sort) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap {% if selected_role == 'Maintenance' %}bg-amber-600 text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-wrench text-[11px]"></i>
+                   <span>Maintenance Crew</span>
+                   <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if selected_role == 'Maintenance' %}bg-white/20 text-white{% else %}bg-amber-50 text-amber-700{% endif %} font-bold">{{ maintenance_count }}</span>
+                </a>
+                <a href="{{ url_for('users', page=1, role='Citizen', search=search, status=selected_status, sort=selected_sort) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap {% if selected_role == 'Citizen' %}bg-blue-600 text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-user-group text-[11px]"></i>
+                   <span>Citizens</span>
+                   <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if selected_role == 'Citizen' %}bg-white/20 text-white{% else %}bg-blue-50 text-blue-700{% endif %} font-bold">{{ citizen_count }}</span>
+                </a>
+                <a href="{{ url_for('users', page=1, role='Administrator', search=search, status=selected_status, sort=selected_sort) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap {% if selected_role == 'Administrator' %}bg-purple-600 text-white shadow-sm{% else %}bg-white text-gray-700 hover:bg-gray-100 border border-gray-200{% endif %}">
+                   <i class="fas fa-shield-alt text-[11px]"></i>
+                   <span>Admins</span>
+                   <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if selected_role == 'Administrator' %}bg-white/20 text-white{% else %}bg-purple-50 text-purple-700{% endif %} font-bold">{{ admin_count }}</span>
+                </a>
+            </div>
+
+            <!-- Filter and Search Toolbar (Compact) -->
+            <form method="GET" action="{{ url_for('users') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 mb-3.5 flex flex-col md:flex-row items-center gap-2">
+                <input type="hidden" name="page" value="1">
+                <!-- Search bar -->
+                <div class="relative flex-1 w-full">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, phone..."
+                           class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <!-- Role Filter -->
+                <div class="w-full md:w-44">
+                    <select name="role" class="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <option value="">All Roles</option>
+                        <option value="Administrator" {% if selected_role == 'Administrator' %}selected{% endif %}>Administrator</option>
+                        <option value="Department Head" {% if selected_role == 'Department Head' %}selected{% endif %}>Department Head</option>
+                        <option value="Engineer" {% if selected_role == 'Engineer' %}selected{% endif %}>Engineer</option>
+                        <option value="Maintenance" {% if selected_role == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+                        <option value="Citizen" {% if selected_role == 'Citizen' %}selected{% endif %}>Citizen</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="w-full md:w-32">
+                    <select name="status" class="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <option value="">All Statuses</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+
+                <!-- Sort Order Selector -->
+                <div class="w-full md:w-48">
+                    <select name="sort" class="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <option value="role" {% if selected_sort == 'role' or not selected_sort %}selected{% endif %}>Sort: Role Hierarchy</option>
+                        <option value="name" {% if selected_sort == 'name' %}selected{% endif %}>Sort: Name (A to Z)</option>
+                        <option value="dept" {% if selected_sort == 'dept' %}selected{% endif %}>Sort: Department</option>
+                        <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Sort: Recently Joined</option>
+                        <option value="id" {% if selected_sort == 'id' %}selected{% endif %}>Sort: User ID</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-1.5 w-full md:w-auto">
+                    <button type="submit" class="w-full md:w-auto px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-sm">
+                        Apply
+                    </button>
+                    {% if search or selected_role or selected_status or (selected_sort and selected_sort != 'role') %}
+                    <a href="{{ url_for('users') }}" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium transition">
+                        Reset
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- Users Data Table (Sleek, No-Scroll Layout) -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="w-full">
+                    <table class="w-full text-xs text-left table-auto">
+                        <thead class="bg-gray-50/90 text-gray-600 text-[11px] font-semibold uppercase tracking-wider border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-2.5">User</th>
+                                <th class="px-3 py-2.5">Role & Department</th>
+                                <th class="px-3 py-2.5">Contact</th>
+                                <th class="px-3 py-2.5">Status & Security</th>
+                                <th class="px-3 py-2.5">Joined</th>
+                                <th class="px-4 py-2.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% set ns = namespace(current_role=None) %}
+                            {% for u in users_list %}
+                            {% if (selected_sort == 'role' or not selected_sort) and not selected_role and u.role != ns.current_role %}
+                                {% set ns.current_role = u.role %}
+                                <tr class="bg-gray-100/90 border-y border-gray-200">
+                                    <td colspan="6" class="px-4 py-1.5">
+                                        <div class="flex items-center justify-between text-xs font-bold
+                                            {% if u.role == 'Administrator' %}text-purple-800
+                                            {% elif u.role == 'Department Head' %}text-teal-800
+                                            {% elif u.role == 'Engineer' %}text-emerald-800
+                                            {% elif u.role == 'Maintenance' %}text-amber-800
+                                            {% else %}text-blue-800{% endif %}">
+                                            <div class="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                                                {% if u.role == 'Administrator' %}<i class="fas fa-shield-alt text-purple-600"></i> Executive Administration
+                                                {% elif u.role == 'Department Head' %}<i class="fas fa-user-tie text-teal-600"></i> Department Heads & Directors
+                                                {% elif u.role == 'Engineer' %}<i class="fas fa-helmet-safety text-emerald-600"></i> Municipal Engineers & Technical Inspectors
+                                                {% elif u.role == 'Maintenance' %}<i class="fas fa-wrench text-amber-600"></i> Maintenance & Repair Crew
+                                                {% else %}<i class="fas fa-user-group text-blue-600"></i> Registered Citizens & Public Users{% endif %}
+                                            </div>
+                                            <span class="text-[10px] font-semibold text-gray-500">
+                                                {% if u.role == 'Administrator' %}{{ admin_count }} Account{{ 's' if admin_count != 1 else '' }}
+                                                {% elif u.role == 'Department Head' %}{{ dept_head_count }} Account{{ 's' if dept_head_count != 1 else '' }}
+                                                {% elif u.role == 'Engineer' %}{{ engineer_count }} Account{{ 's' if engineer_count != 1 else '' }}
+                                                {% elif u.role == 'Maintenance' %}{{ maintenance_count }} Account{{ 's' if maintenance_count != 1 else '' }}
+                                                {% else %}{{ citizen_count }} Account{{ 's' if citizen_count != 1 else '' }}{% endif %}
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            <tr class="hover:bg-gray-50/80 transition">
+                                <!-- User Identity -->
+                                <td class="px-4 py-2.5">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white flex-shrink-0
+                                            {% if u.role == 'Administrator' %}bg-purple-600
+                                            {% elif u.role == 'Department Head' %}bg-teal-600
+                                            {% elif u.role == 'Engineer' %}bg-emerald-600
+                                            {% elif u.role == 'Maintenance' %}bg-amber-600
+                                            {% else %}bg-blue-600{% endif %}">
+                                            {{ u.first_name[0] | upper }}{{ u.last_name[0] | upper if u.last_name else '' }}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="font-semibold text-gray-800 text-xs truncate">{{ u.first_name }} {{ u.last_name or '' }}</div>
+                                            <div class="text-[11px] text-gray-500 font-mono truncate">{{ u.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Role & Department -->
+                                <td class="px-3 py-2.5">
+                                    <div class="flex flex-col gap-0.5 items-start">
+                                        {% if u.role == 'Administrator' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                                <i class="fas fa-shield-alt text-[9px]"></i> Admin
+                                            </span>
+                                        {% elif u.role == 'Department Head' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+                                                <i class="fas fa-user-tie text-[9px]"></i> Dept Head
+                                            </span>
+                                        {% elif u.role == 'Engineer' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <i class="fas fa-helmet-safety text-[9px]"></i> Engineer
+                                            </span>
+                                        {% elif u.role == 'Maintenance' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <i class="fas fa-wrench text-[9px]"></i> Maintenance
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <i class="fas fa-user text-[9px]"></i> Citizen
+                                            </span>
+                                        {% endif %}
+                                        {% if u.department_name %}
+                                            <span class="text-[10px] text-gray-500 truncate max-w-[150px]" title="{{ u.department_name }}">
+                                                <i class="fas fa-building text-[9px] text-gray-400 mr-0.5"></i> {{ u.department_name }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <!-- Contact -->
+                                <td class="px-3 py-2.5 text-xs text-gray-600">
+                                    <div class="font-mono text-[11px]">{{ u.phone or '—' }}</div>
+                                </td>
+
+                                <!-- Status & Security -->
+                                <td class="px-3 py-2.5">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        {% if u.is_active %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800">
+                                                <span class="w-1 h-1 rounded-full bg-emerald-500"></span> Active
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-800">
+                                                <span class="w-1 h-1 rounded-full bg-red-500"></span> Inactive
+                                            </span>
+                                        {% endif %}
+                                        {% if u.must_change_password %}
+                                            <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="Temporary Password">
+                                                <i class="fas fa-key text-[9px]"></i> Temp
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <!-- Joined Date -->
+                                <td class="px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap">
+                                    {{ u.created_at.strftime('%b %d, %Y') if u.created_at else '—' }}
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-4 py-2.5 text-right whitespace-nowrap space-x-1">
+                                    <!-- View Details Button -->
+                                    <button onclick="showUserDetails({{ u.user_id }})"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition border border-blue-200"
+                                            title="View Details">
+                                        <i class="fas fa-eye text-[10px]"></i>
+                                        <span>Details</span>
+                                    </button>
+
+                                    <!-- Toggle Active (except logged-in admin) -->
+                                    {% if u.user_id != session.get('user_id') %}
+                                    <form action="{{ url_for('toggle_user_status', user_id=u.user_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to {% if u.is_active %}deactivate{% else %}activate{% endif %} this user?')">
+                                        <button type="submit"
+                                                title="{% if u.is_active %}Deactivate Account{% else %}Activate Account{% endif %}"
+                                                class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-medium transition border {% if u.is_active %}bg-red-50 text-red-600 border-red-200 hover:bg-red-100{% else %}bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100{% endif %}">
+                                            <i class="fas {% if u.is_active %}fa-ban{% else %}fa-check{% endif %} text-[10px]"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-users-slash text-3xl text-gray-300 mb-2 block"></i>
+                                    <p class="font-medium text-gray-600 text-xs">No users match your criteria.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Footer to eliminate page scroll -->
+                <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
+                    <div>
+                        Showing <span class="font-semibold text-gray-800">{{ showing_start }}</span> to <span class="font-semibold text-gray-800">{{ showing_end }}</span> of <span class="font-semibold text-gray-800">{{ total_filtered_users }}</span> users
+                    </div>
+                    {% if total_pages > 1 %}
+                    <div class="flex items-center gap-1">
+                        {% if page > 1 %}
+                        <a href="{{ url_for('users', page=page-1, role=selected_role, search=search, status=selected_status, sort=selected_sort) }}"
+                           class="px-2.5 py-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 transition font-medium">
+                            <i class="fas fa-chevron-left text-[10px] mr-0.5"></i> Prev
+                        </a>
+                        {% endif %}
+
+                        {% for p_num in range(1, total_pages + 1) %}
+                            {% if p_num == page %}
+                            <span class="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold shadow-sm">{{ p_num }}</span>
+                            {% elif p_num <= 3 or p_num > total_pages - 2 or (p_num >= page - 1 and p_num <= page + 1) %}
+                            <a href="{{ url_for('users', page=p_num, role=selected_role, search=search, status=selected_status, sort=selected_sort) }}"
+                               class="px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 transition">{{ p_num }}</a>
+                            {% elif p_num == 4 and page > 4 %}
+                            <span class="px-1 text-gray-400">...</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page < total_pages %}
+                        <a href="{{ url_for('users', page=page+1, role=selected_role, search=search, status=selected_status, sort=selected_sort) }}"
+                           class="px-2.5 py-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 transition font-medium">
+                            Next <i class="fas fa-chevron-right text-[10px] ml-0.5"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: USER DETAILS POPUP -->
+<!-- ============================================================== -->
+<div id="detailsModal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100 animate-fade-in">
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 px-6 py-5 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-lg">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg leading-tight" id="modal_full_name">User Details</h3>
+                    <p class="text-xs text-blue-200" id="modal_role_subtitle">Comprehensive profile and activity summary</p>
+                </div>
+            </div>
+            <button onclick="closeDetailsModal()" class="text-white/80 hover:text-white text-xl p-1">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6 sm:p-8 space-y-6 max-h-[80vh] overflow-y-auto">
+            <!-- Basic Profile Strip -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div class="flex items-center gap-3.5">
+                    <div id="modal_avatar" class="w-14 h-14 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-md">
+                        U
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-gray-800 text-base" id="modal_name_display"></h4>
+                            <span id="modal_role_badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold"></span>
+                        </div>
+                        <p class="text-xs text-gray-500 font-mono mt-0.5" id="modal_email_display"></p>
+                    </div>
+                </div>
+
+                <div class="flex sm:flex-col items-center sm:items-end gap-2 text-xs">
+                    <span id="modal_status_badge" class="px-2.5 py-1 rounded-full font-medium"></span>
+                    <span class="text-gray-400 text-[11px]" id="modal_id_display">User ID #</span>
+                </div>
+            </div>
+
+            <!-- Profile Attributes Grid -->
+            <div>
+                <h5 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Account & Contact Information</h5>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div class="p-3 bg-white rounded-lg border border-gray-200">
+                        <span class="text-xs text-gray-400 block mb-0.5"><i class="fas fa-phone mr-1"></i> Phone Number</span>
+                        <span class="font-medium text-gray-800" id="modal_phone_display">None</span>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-lg border border-gray-200">
+                        <span class="text-xs text-gray-400 block mb-0.5"><i class="fas fa-building mr-1"></i> Assigned Department</span>
+                        <span class="font-medium text-gray-800" id="modal_department_display">None</span>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-lg border border-gray-200">
+                        <span class="text-xs text-gray-400 block mb-0.5"><i class="fas fa-map-marker-alt mr-1"></i> Address</span>
+                        <span class="font-medium text-gray-800" id="modal_address_display">None</span>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-lg border border-gray-200">
+                        <span class="text-xs text-gray-400 block mb-0.5"><i class="fas fa-calendar-alt mr-1"></i> Registered Date</span>
+                        <span class="font-medium text-gray-800" id="modal_created_display">None</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security & Governance -->
+            <div>
+                <h5 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Security & Compliance</h5>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div class="p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 block mb-0.5"><i class="fas fa-key mr-1"></i> Password Status</span>
+                            <span class="font-semibold" id="modal_password_status"></span>
+                        </div>
+                        <i id="modal_pwd_icon" class="text-lg"></i>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-400 block mb-0.5"><i class="fas fa-gavel mr-1"></i> Strike Count</span>
+                            <span class="font-semibold" id="modal_strike_display">0 strikes</span>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-amber-500 text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Statistics -->
+            <div>
+                <h5 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">System Activity Summary</h5>
+                <div class="grid grid-cols-3 gap-3 text-center" id="modal_activity_metrics">
+                    <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100">
+                        <span class="text-xs text-blue-700 font-medium block">Complaints Filed</span>
+                        <span class="text-2xl font-bold text-blue-800 mt-1 block" id="modal_complaint_count">0</span>
+                    </div>
+                    <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                        <span class="text-xs text-emerald-700 font-medium block">Assigned / Work</span>
+                        <span class="text-2xl font-bold text-emerald-800 mt-1 block" id="modal_engineer_count">0</span>
+                    </div>
+                    <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-100">
+                        <span class="text-xs text-amber-700 font-medium block">Maintenance Tasks</span>
+                        <span class="text-2xl font-bold text-amber-800 mt-1 block" id="modal_maintenance_count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end">
+            <button onclick="closeDetailsModal()" class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-semibold transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Embedded Users JSON for instant modal display -->
+<script>
+    const USERS_DATA = {{ users_json | safe }};
+
+    function showUserDetails(userId) {
+        const user = USERS_DATA.find(u => u.user_id === userId);
+        if (!user) return;
+
+        // Names
+        const fullName = (user.first_name + " " + (user.last_name || "")).trim();
+        document.getElementById('modal_full_name').textContent = fullName;
+        document.getElementById('modal_name_display').textContent = fullName;
+        document.getElementById('modal_role_subtitle').textContent = user.role + " Profile Overview";
+        document.getElementById('modal_email_display').textContent = user.email;
+        document.getElementById('modal_id_display').textContent = "User ID #" + user.user_id;
+
+        // Avatar
+        const initials = (user.first_name ? user.first_name[0] : '') + (user.last_name ? user.last_name[0] : '');
+        document.getElementById('modal_avatar').textContent = initials.toUpperCase() || 'U';
+
+        // Role badge styling
+        const roleBadge = document.getElementById('modal_role_badge');
+        roleBadge.textContent = user.role;
+        if (user.role === 'Administrator') {
+            roleBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800";
+        } else if (user.role === 'Department Head') {
+            roleBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800";
+        } else if (user.role === 'Engineer') {
+            roleBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800";
+        } else if (user.role === 'Maintenance') {
+            roleBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800";
+        } else {
+            roleBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800";
+        }
+
+        // Account status
+        const statusBadge = document.getElementById('modal_status_badge');
+        if (user.is_active) {
+            statusBadge.className = "px-2.5 py-1 rounded-full font-semibold text-xs bg-emerald-100 text-emerald-800";
+            statusBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Active Account';
+        } else {
+            statusBadge.className = "px-2.5 py-1 rounded-full font-semibold text-xs bg-red-100 text-red-800";
+            statusBadge.innerHTML = '<i class="fas fa-ban mr-1"></i> Deactivated';
+        }
+
+        // Attributes
+        document.getElementById('modal_phone_display').textContent = user.phone || 'Not provided';
+        document.getElementById('modal_department_display').textContent = user.department_name || 'None (General)';
+        document.getElementById('modal_address_display').textContent = user.address || 'Not provided';
+        document.getElementById('modal_created_display').textContent = user.created_at_formatted || '—';
+
+        // Password status
+        const pwdStatus = document.getElementById('modal_password_status');
+        const pwdIcon = document.getElementById('modal_pwd_icon');
+        if (user.must_change_password) {
+            pwdStatus.textContent = "Temporary Password (Change Pending)";
+            pwdStatus.className = "text-amber-700 font-semibold";
+            pwdIcon.className = "fas fa-key text-amber-500 text-lg";
+        } else {
+            pwdStatus.textContent = "Personalized Password Set";
+            pwdStatus.className = "text-emerald-700 font-semibold";
+            pwdIcon.className = "fas fa-shield-check text-emerald-500 text-lg";
+        }
+
+        // Strikes
+        const strikes = user.strike_count || 0;
+        document.getElementById('modal_strike_display').textContent = strikes + (strikes === 1 ? ' strike' : ' strikes');
+        if (strikes > 0) {
+            document.getElementById('modal_strike_display').className = "text-red-600 font-bold";
+        } else {
+            document.getElementById('modal_strike_display').className = "text-gray-700 font-semibold";
+        }
+
+        // Metrics
+        document.getElementById('modal_complaint_count').textContent = user.citizen_complaint_count || 0;
+        document.getElementById('modal_engineer_count').textContent = user.engineer_assigned_count || 0;
+        document.getElementById('modal_maintenance_count').textContent = user.maintenance_work_count || 0;
+
+        document.getElementById('detailsModal').classList.remove('hidden');
+    }
+
+    function closeDetailsModal() {
+        document.getElementById('detailsModal').classList.add('hidden');
+    }
+</script>
+
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

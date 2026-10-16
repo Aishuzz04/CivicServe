@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports | Department Head</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #2563eb; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.08); }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+<div class="flex min-h-screen overflow-x-hidden">
+
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Department Head</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('department_head_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-home w-5"></i> Dashboard</a>
+            <a href="{{ url_for('department_head_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-clipboard-list w-5"></i> Complaints</a>
+            <a href="{{ url_for('department_head_assign_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-tasks w-5"></i> Assign Work</a>
+            <a href="{{ url_for('department_head_verify_inspections') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-clipboard-check w-5"></i> Verify Inspections</a>
+            <a href="{{ url_for('department_head_engineers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-hard-hat w-5"></i> Engineers</a>
+            <a href="{{ url_for('department_head_field_workers') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-users-cog w-5"></i> Field Workers</a>
+            <a href="{{ url_for('department_head_reports') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"><i class="fas fa-chart-bar w-5"></i> Reports</a>
+            <a href="{{ url_for('department_head_profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100"><i class="fas fa-user w-5"></i> Profile</a>
+        </nav>
+        <div class="px-4 py-4 border-t border-blue-900/40">
+            <a href="#" class="flex items-center gap-2 text-sm text-blue-200 hover:text-white">
+                <i class="fas fa-question-circle"></i>
+                <div><p class="font-medium">Need Help?</p><p class="text-xs text-blue-300">Contact Administrator</p></div>
+            </a>
+        </div>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <div id="mainContent" class="flex-1 lg:ml-64 min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ease-in-out">
+        <header class="bg-[#0B1C3D] text-white sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <button onclick="toggleSidebar()" class="p-2 text-white hover:bg-white/10 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar"><i class="fas fa-bars"></i></button>
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="flex items-center gap-2 border-l border-white/20 pl-4">
+                        <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center"><i class="fas fa-user"></i></div>
+                        <div class="hidden sm:block">
+                            <p class="text-sm font-medium">{{ first_name }} {{ last_name | default('') }}</p>
+                            <p class="text-xs text-blue-200">Department Head</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 rounded-lg text-sm"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Reports</h2>
+                <p class="text-sm text-gray-500">Department performance overview</p>
+            </div>
+
+            <!-- Summary cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500">Total Complaints</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ total | default(48) }}</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500">Pending</p>
+                    <p class="text-3xl font-bold text-orange-600 mt-1">{{ pending | default(8) }}</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500">In Progress</p>
+                    <p class="text-3xl font-bold text-blue-600 mt-1">{{ in_progress | default(15) }}</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500">Completed</p>
+                    <p class="text-3xl font-bold text-green-600 mt-1">{{ completed | default(25) }}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Status chart -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <h3 class="font-semibold text-gray-800 mb-4">Status Distribution</h3>
+                    <div class="h-64">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Priority chart -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <h3 class="font-semibold text-gray-800 mb-4">Priority Distribution</h3>
+                    <div class="h-64">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const overlay = document.getElementById('overlay');
+    const isDesktop = window.innerWidth >= 1024;
+
+    if (isDesktop) {
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.remove('lg:ml-0');
+                mainContent.classList.add('lg:ml-64');
+            }
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.remove('lg:ml-64');
+                mainContent.classList.add('lg:ml-0');
+            }
+        }
+    } else {
+        sidebar.classList.toggle('-translate-x-full');
+        if (overlay) overlay.classList.toggle('hidden');
+    }
+}
+
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Pending', 'Assigned', 'Maintenance', 'Completed'],
+        datasets: [{
+            data: [{{ pending | default(8) }}, {{ assigned | default(10) }}, {{ maintenance | default(5) }}, {{ completed | default(25) }}],
+            backgroundColor: ['#FB923C', '#3B82F6', '#A855F7', '#22C55E'],
+            borderWidth: 0
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+
+new Chart(document.getElementById('priorityChart'), {
+    type: 'bar',
+    data: {
+        labels: ['High', 'Medium', 'Low'],
+        datasets: [{
+            label: 'Complaints',
+            data: [{{ high | default(12) }}, {{ medium | default(28) }}, {{ low | default(8) }}],
+            backgroundColor: ['#EF4444', '#F59E0B', '#22C55E'],
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } }
+    }
+});
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

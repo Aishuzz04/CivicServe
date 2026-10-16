@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Heads | Administrator Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .sidebar-link:hover:not(.active) {
+            background-color: rgba(255,255,255,0.08);
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0B1C3D] text-white flex flex-col h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Administrator Panel</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-clipboard-list w-5"></i> Complaints
+            </a>
+            <a href="{{ url_for('verify_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-check-circle w-5"></i> Verify Complaints
+            </a>
+            <a href="{{ url_for('departments') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-building w-5"></i> Departments
+            </a>
+            <!-- ACTIVE: Department Heads -->
+            <a href="{{ url_for('admin_department_heads') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-user-tie w-5"></i> Department Heads
+            </a>
+            <a href="{{ url_for('reports') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-chart-bar w-5"></i> Reports
+            </a>
+            <a href="{{ url_for('users') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-users w-5"></i> Users
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-blue-900/50">
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 hover:bg-red-500/20 hover:text-red-300 transition">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile Overlay -->
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Department Heads Management</h2>
+                        <p class="text-xs sm:text-sm text-gray-500">Assign department heads with email credentials & enforce first-login password updates</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <!-- Flash Notifications -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-6 p-4 rounded-xl border flex items-start gap-3 shadow-sm {% if category == 'error' %}bg-red-50 border-red-200 text-red-800{% else %}bg-emerald-50 border-emerald-200 text-emerald-900{% endif %}">
+                            <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-600{% else %}fa-check-circle text-emerald-600{% endif %} text-lg mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1 text-sm leading-relaxed">
+                                {{ message|safe }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Department Heads</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">{{ total_heads }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">Registered departmental leadership</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Heads</p>
+                            <p class="text-3xl font-bold text-emerald-600 mt-1">{{ active_heads }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">Enabled & operational accounts</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pending Password Change</p>
+                            <p class="text-3xl font-bold text-amber-600 mt-1">{{ pending_password_changes }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fas fa-key"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-amber-600 font-medium mt-3">Using initial temporary password</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Departments Covered</p>
+                            <p class="text-3xl font-bold text-indigo-600 mt-1">{{ assigned_departments }} / {{ total_departments }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">With an appointed head</p>
+                </div>
+            </div>
+
+            <!-- Action & Search Toolbar -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="relative w-full sm:w-80">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="searchInput" onkeyup="filterHeadsTable()" placeholder="Search by name, email, department..."
+                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button onclick="openAddModal()"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition shadow-sm">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Department Head</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table of Department Heads -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left" id="headsTable">
+                        <thead class="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-4">Department Head</th>
+                                <th class="px-6 py-4">Assigned Department</th>
+                                <th class="px-6 py-4">Contact Phone</th>
+                                <th class="px-6 py-4">First-Login Password Status</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">Created Date</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for head in department_heads %}
+                            <tr class="hover:bg-gray-50 transition head-row"
+                                data-name="{{ head.first_name }} {{ head.last_name or '' }}"
+                                data-email="{{ head.email }}"
+                                data-dept="{{ head.department_name or 'Unassigned' }}">
+                                <!-- User Name & Email -->
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">
+                                            {{ head.first_name[0] | upper }}{{ head.last_name[0] | upper if head.last_name else '' }}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-gray-800">{{ head.first_name }} {{ head.last_name or '' }}</div>
+                                            <div class="text-xs text-gray-500 font-mono">{{ head.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Department -->
+                                <td class="px-6 py-4">
+                                    {% if head.department_name %}
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <i class="fas fa-building text-[10px]"></i>
+                                            {{ head.department_name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                            Unassigned
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Phone -->
+                                <td class="px-6 py-4 text-gray-600">
+                                    {{ head.phone or '—' }}
+                                </td>
+
+                                <!-- Password status -->
+                                <td class="px-6 py-4">
+                                    {% if head.must_change_password %}
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                            <i class="fas fa-key text-amber-500 animate-pulse"></i>
+                                            Temporary (Change Pending)
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                            <i class="fas fa-check-circle text-emerald-500"></i>
+                                            Personal Password Active
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Active Status -->
+                                <td class="px-6 py-4">
+                                    {% if head.is_active %}
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Created At -->
+                                <td class="px-6 py-4 text-xs text-gray-500">
+                                    {{ head.created_at.strftime('%b %d, %Y') if head.created_at else '—' }}
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
+                                    <!-- Reset Fixed Password button -->
+                                    <button onclick="openResetModal({{ head.user_id }}, '{{ head.first_name }} {{ head.last_name or '' }}', '{{ head.email }}')"
+                                            title="Set New Fixed Password (forces change on login)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-medium transition border border-amber-200">
+                                        <i class="fas fa-key"></i>
+                                        <span>Reset Password</span>
+                                    </button>
+
+                                    <!-- Edit details -->
+                                    <button onclick="openEditModal({{ head.user_id }}, '{{ head.first_name }}', '{{ head.last_name or '' }}', '{{ head.email }}', '{{ head.phone or '' }}', '{{ head.department_id or '' }}')"
+                                            title="Edit Department Head"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition border border-blue-200">
+                                        <i class="fas fa-edit"></i>
+                                        <span>Edit</span>
+                                    </button>
+
+                                    <!-- Toggle Active -->
+                                    <form action="{{ url_for('toggle_department_head', user_id=head.user_id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to {% if head.is_active %}deactivate{% else %}activate{% endif %} this Department Head?')">
+                                        <button type="submit"
+                                                title="{% if head.is_active %}Deactivate{% else %}Activate{% endif %}"
+                                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition border {% if head.is_active %}bg-red-50 text-red-600 border-red-200 hover:bg-red-100{% else %}bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100{% endif %}">
+                                            <i class="fas {% if head.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <i class="fas fa-user-tie text-4xl text-gray-300 mb-3 block"></i>
+                                    <p class="font-medium text-gray-600">No Department Heads found.</p>
+                                    <p class="text-xs text-gray-400 mt-1">Click the button above to assign a department head with email & fixed initial password.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: ADD DEPARTMENT HEAD -->
+<!-- ============================================================== -->
+<div id="addModal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl animate-fade-in border border-gray-100">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <i class="fas fa-user-plus text-lg"></i>
+                <h3 class="font-bold text-base">Add New Department Head</h3>
+            </div>
+            <button onclick="closeAddModal()" class="text-white/80 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_department_head') }}" method="POST" class="p-6 space-y-4">
+            <!-- Department Selection -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Select Department <span class="text-red-500">*</span>
+                </label>
+                <select name="department_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="">-- Choose Infrastructure Department --</option>
+                    {% for dept in active_departments_list %}
+                        <option value="{{ dept.department_id }}">{{ dept.department_name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">The department head will oversee complaint assignments for this department.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- First Name -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        First Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="first_name" required placeholder="e.g. Street Light"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Last Name
+                    </label>
+                    <input type="text" name="last_name" placeholder="e.g. Head"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Email -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Email Address <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="email" required placeholder="e.g. roads.head@municipal.com"
+                           pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                           title="Please enter a valid email address (e.g. name@example.com)"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Phone Number
+                    </label>
+                    <input type="tel" name="phone" placeholder="e.g. 9876543210"
+                           pattern="[0-9]{10}" maxlength="10"
+                           title="Please enter a 10-digit mobile number"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <!-- Fixed / Temporary Password -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Initial Fixed Password <span class="text-red-500">*</span>
+                    </label>
+                    <button type="button" onclick="generateDefaultPassword('add_temp_password')" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                        <i class="fas fa-wand-magic-sparkles mr-1"></i> Generate Default
+                    </button>
+                </div>
+                <div class="relative">
+                    <input type="text" name="temporary_password" id="add_temp_password" required value="Head@2026"
+                           placeholder="Enter initial fixed password"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none pr-10">
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                </div>
+                <div class="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+                    <i class="fas fa-shield-alt text-amber-600 mt-0.5"></i>
+                    <span><strong>Mandatory First-Login Change:</strong> The Department Head will log in using this email and fixed password, and the system will immediately require them to create their own new password before granting dashboard access.</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm flex items-center gap-2">
+                    <i class="fas fa-check"></i>
+                    <span>Create Department Head</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: EDIT DEPARTMENT HEAD -->
+<!-- ============================================================== -->
+<div id="editModal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
+        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 px-6 py-4 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <i class="fas fa-user-edit text-lg"></i>
+                <h3 class="font-bold text-base">Edit Department Head Details</h3>
+            </div>
+            <button onclick="closeEditModal()" class="text-white/80 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="editForm" method="POST" class="p-6 space-y-4">
+            <!-- Department Selection -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Department
+                </label>
+                <select name="department_id" id="edit_department_id" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="">-- No Department Assigned --</option>
+                    {% for dept in active_departments_list %}
+                        <option value="{{ dept.department_id }}">{{ dept.department_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        First Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="first_name" id="edit_first_name" required
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Last Name
+                    </label>
+                    <input type="text" name="last_name" id="edit_last_name"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Email Address <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="email" id="edit_email" required
+                           pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                           title="Please enter a valid email address (e.g. name@example.com)"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Phone Number
+                    </label>
+                    <input type="tel" name="phone" id="edit_phone"
+                           pattern="[0-9]{10}" maxlength="10"
+                           title="Please enter a 10-digit mobile number"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: RESET FIXED PASSWORD -->
+<!-- ============================================================== -->
+<div id="resetModal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
+        <div class="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <i class="fas fa-key text-lg"></i>
+                <h3 class="font-bold text-base">Reset Department Head Password</h3>
+            </div>
+            <button onclick="closeResetModal()" class="text-white/80 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="resetForm" method="POST" class="p-6 space-y-4">
+            <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs">
+                <p class="text-gray-500 font-medium">Department Head:</p>
+                <p class="text-gray-800 font-bold text-sm" id="reset_head_name"></p>
+                <p class="text-gray-500 font-mono" id="reset_head_email"></p>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        New Fixed Temporary Password <span class="text-red-500">*</span>
+                    </label>
+                    <button type="button" onclick="generateDefaultPassword('reset_temp_password')" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                        Generate
+                    </button>
+                </div>
+                <input type="text" name="temporary_password" id="reset_temp_password" required value="Head@2026"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none">
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+                <i class="fas fa-info-circle text-amber-600 mt-0.5"></i>
+                <span>Setting this new temporary password will re-activate the <strong>First-Login Password Change</strong> requirement. The head will be forced to change this upon next login.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeResetModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold shadow-sm flex items-center gap-2">
+                    <i class="fas fa-key"></i>
+                    <span>Set Fixed Password</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-0');
+                    mainContent.classList.add('lg:ml-64');
+                }
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (mainContent) {
+                    mainContent.classList.remove('lg:ml-64');
+                    mainContent.classList.add('lg:ml-0');
+                }
+            }
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+    }
+
+    function openAddModal() {
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+    function closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+    }
+
+    function openEditModal(userId, firstName, lastName, email, phone, departmentId) {
+        document.getElementById('editForm').action = "/admin/department-heads/edit/" + userId;
+        document.getElementById('edit_first_name').value = firstName || "";
+        document.getElementById('edit_last_name').value = lastName || "";
+        document.getElementById('edit_email').value = email || "";
+        document.getElementById('edit_phone').value = phone || "";
+        document.getElementById('edit_department_id').value = departmentId || "";
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function openResetModal(userId, name, email) {
+        document.getElementById('resetForm').action = "/admin/department-heads/reset-password/" + userId;
+        document.getElementById('reset_head_name').textContent = name || "";
+        document.getElementById('reset_head_email').textContent = email || "";
+        document.getElementById('resetModal').classList.remove('hidden');
+    }
+    function closeResetModal() {
+        document.getElementById('resetModal').classList.add('hidden');
+    }
+
+    function generateDefaultPassword(inputId) {
+        let pwd = "Head@" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById(inputId).value = pwd;
+    }
+
+    function filterHeadsTable() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.head-row');
+        rows.forEach(row => {
+            const name = (row.getAttribute('data-name') || '').toLowerCase();
+            const email = (row.getAttribute('data-email') || '').toLowerCase();
+            const dept = (row.getAttribute('data-dept') || '').toLowerCase();
+            if (name.includes(query) || email.includes(query) || dept.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Close modals on Esc key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAddModal();
+            closeEditModal();
+            closeResetModal();
+        }
+    });
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>

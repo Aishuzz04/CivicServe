@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register New Complaint | Smart Public Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #1E40AF; color: white; }
+        .sidebar-link:hover:not(.active) { background-color: rgba(255,255,255,0.1); }
+        .dept-card-active {
+            border-color: #2563EB !important;
+            background-color: #EFF6FF !important;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-slide.css') }}">
+</head>
+<body class="bg-gray-100">
+
+<div class="flex min-h-screen">
+
+    <!-- Sidebar (Notifications removed as requested) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-[#0A1F3D] text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <!-- CivicServe Logo Brand -->
+        <div class="flex items-center gap-3 px-5 py-5 border-b border-blue-900/40">
+            <img src="{{ url_for('static', filename='images/civicserve-logo.png') }}" alt="CivicServe Logo" class="w-10 h-10 object-contain rounded-full shadow flex-shrink-0 bg-white/10 p-0.5">
+            <div>
+                <h1 class="font-bold text-sm leading-tight text-white">CivicServe</h1>
+                <p class="text-xs text-blue-300">Citizen Portal</p>
+            </div>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="{{ url_for('citizen_dashboard') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </a>
+            <a href="{{ url_for('register_complaint') }}" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium">
+                <i class="fas fa-edit w-5"></i> Register Complaint
+            </a>
+            <a href="{{ url_for('track_complaints') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-search w-5"></i> Track Complaints
+            </a>
+            <a href="{{ url_for('profile') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-user w-5"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100">
+                <i class="fas fa-comment-dots w-5"></i> Feedback
+            </a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100 mt-6">
+                <i class="fas fa-sign-out-alt w-5"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+
+        <!-- Top Header with Notification Bell near user name -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition text-xl focus:outline-none" title="Toggle Sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden sm:inline">Home</span>
+                    </a>
+                </div>
+                <!-- Notifications icon positioned at top corner near user name -->
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('notifications') }}"
+                       class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                       title="Notifications">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                    </a>
+                    <div class="flex items-center gap-2 border-l border-gray-200 pl-3">
+                        <div class="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ first_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Register New Complaint</h2>
+                <p class="text-sm text-gray-500 mt-1">Select a department to access its tailored complaint form</p>
+            </div>
+
+            {% if error %}
+            <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-center gap-3 text-sm">
+                <i class="fas fa-exclamation-circle text-red-500 text-lg flex-shrink-0"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden max-w-4xl">
+                <form id="complaintForm" action="{{ url_for('register_complaint') }}" method="POST" enctype="multipart/form-data" onsubmit="return handleFormSubmit(event)" class="p-6 sm:p-8 space-y-8">
+                    <input type="hidden" name="return_url" value="{{ return_url }}">
+
+                    <!-- ========== 1. DEPARTMENT SELECTION & BASIC DETAILS ========== -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">1</span>
+                            Select Department & Issue Basics
+                        </h3>
+
+                        <!-- Department Selection Quick Cards -->
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Choose Department <span class="text-red-500 font-bold">*</span>
+                                <span class="text-xs text-gray-400 font-normal ml-1">(Form adapts to department requirements)</span>
+                            </label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                                <button type="button" onclick="selectDepartment('Roads')" id="pill-Roads"
+                                    class="dept-pill flex flex-col items-center justify-center p-3 rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition text-center group cursor-pointer">
+                                    <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition">
+                                        <i class="fas fa-road text-base"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">Roads</span>
+                                </button>
+
+                                <button type="button" onclick="selectDepartment('Street Lights')" id="pill-StreetLights"
+                                    class="dept-pill flex flex-col items-center justify-center p-3 rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition text-center group cursor-pointer">
+                                    <div class="w-9 h-9 rounded-lg bg-yellow-50 text-yellow-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition">
+                                        <i class="fas fa-lightbulb text-base"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">Street Lights</span>
+                                </button>
+
+                                <button type="button" onclick="selectDepartment('Water Supply')" id="pill-WaterSupply"
+                                    class="dept-pill flex flex-col items-center justify-center p-3 rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition text-center group cursor-pointer">
+                                    <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition">
+                                        <i class="fas fa-faucet-drip text-base"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">Water Supply</span>
+                                </button>
+
+                                <button type="button" onclick="selectDepartment('Drainage')" id="pill-Drainage"
+                                    class="dept-pill flex flex-col items-center justify-center p-3 rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition text-center group cursor-pointer">
+                                    <div class="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center mb-1.5 group-hover:scale-105 transition">
+                                        <i class="fas fa-water text-base"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">Drainage</span>
+                                </button>
+
+                                <button type="button" onclick="selectDepartment('Waste Management')" id="pill-WasteManagement"
+                                    class="dept-pill flex flex-col items-center justify-center p-3 rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition text-center group cursor-pointer">
+                                    <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition">
+                                        <i class="fas fa-trash-can text-base"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">Waste Mgmt</span>
+                                </button>
+
+                                <button type="button" onclick="selectDepartment('Parks')" id="pill-Parks"
+                                    class="dept-pill flex flex-col items-center justify-center p-3 rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition text-center group cursor-pointer">
+                                    <div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition">
+                                        <i class="fas fa-tree text-base"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">Parks</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5">
+                            <!-- Category Dropdown + Title -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Department / Complaint Category *</label>
+                                    <select name="category" id="category" required onchange="onCategoryChange(this.value)"
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm bg-white">
+                                        <option value="" disabled {% if not selected_dept %}selected{% endif %}>-- Select Department --</option>
+                                        {% for department in departments %}
+                                            <option value="{{ department.department_name }}" {% if selected_dept and (selected_dept|lower == department.department_name|lower) %}selected{% endif %}>
+                                                {{ department.department_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Complaint Title *</label>
+                                    <input type="text" name="title" id="title" placeholder="e.g. Deep pothole causing skidding / Streetlight dark" required
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
+                                <textarea name="description" id="description" rows="3" placeholder="Describe the problem, when you first noticed it, and any immediate disruption it causes..." required
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm resize-none"></textarea>
+                            </div>
+
+                            <!-- Photo Upload Section - REQUIRED FIELD -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5 flex items-center justify-between">
+                                    <span class="flex items-center gap-1.5">
+                                        Upload Photo of the Issue <span class="text-red-500 font-bold">*</span>
+                                        <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 font-semibold">Required</span>
+                                    </span>
+                                    <span class="text-xs text-gray-400">JPG, JPEG or PNG up to 5MB</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="file" name="image" id="image" accept="image/jpeg,image/png" required class="hidden" onchange="handleImagePreview(this)">
+                                    <label for="image" id="image-dropzone" class="flex flex-col sm:flex-row items-center gap-4 w-full p-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-blue-50/50 hover:border-blue-400 transition">
+                                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
+                                            <i class="fas fa-camera text-xl"></i>
+                                        </div>
+                                        <div class="flex-1 text-center sm:text-left">
+                                            <span id="file-name" class="text-sm font-semibold text-gray-700">Click to upload photo of the problem</span>
+                                            <p class="text-xs text-gray-400 mt-0.5">A clear photograph is mandatory for initial verification and inspection dispatch</p>
+                                        </div>
+                                        <span class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+                                            <i class="fas fa-folder-open mr-1"></i> Choose File
+                                        </span>
+                                    </label>
+                                </div>
+                                <!-- Visual Image Preview -->
+                                <div id="image-preview-container" class="hidden mt-3 p-3 bg-blue-50/50 border border-blue-200 rounded-xl flex items-center gap-4">
+                                    <img id="image-preview" src="#" alt="Selected Photo Preview" class="w-20 h-20 object-cover rounded-lg border border-gray-200 shadow-sm flex-shrink-0">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">Photo Attached</span>
+                                            <span id="preview-filesize" class="text-xs text-gray-500"></span>
+                                        </div>
+                                        <p id="preview-filename" class="text-sm font-medium text-gray-800 truncate mt-1"></p>
+                                        <button type="button" onclick="clearSelectedImage()" class="mt-2 text-xs font-medium text-red-600 hover:text-red-800 flex items-center gap-1 transition">
+                                            <i class="fas fa-trash-alt"></i> Remove & select different photo
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Computer Vision Validation Live Panel -->
+                                <div id="image-cv-validation-box" class="hidden mt-3 rounded-xl overflow-hidden transition-all duration-300">
+                                    <!-- 1. Progress State (Verifying) -->
+                                    <div id="cv-progress-card" class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center gap-2.5">
+                                                <i class="fas fa-spinner fa-spin text-blue-600 text-base"></i>
+                                                <span class="text-xs font-bold text-gray-800">Verifying Photo with Computer Vision AI...</span>
+                                            </div>
+                                            <span class="text-[11px] font-mono text-blue-600 font-semibold" id="cv-step-label">Analyzing image content...</span>
+                                        </div>
+                                        <!-- Progress Bar -->
+                                        <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden mb-2.5">
+                                            <div id="cv-progress-bar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-500 w-1/3 animate-pulse"></div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500">
+                                            <div class="flex items-center gap-1.5" id="cv-step-rel">
+                                                <i class="fas fa-circle-notch fa-spin text-blue-500 text-[10px]"></i>
+                                                <span>1. CLIP Category Relevance</span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5" id="cv-step-ai">
+                                                <i class="fas fa-circle-notch fa-spin text-blue-500 text-[10px]"></i>
+                                                <span>2. AI-Image Detector Scan</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. Result State: Relevant & Authentic -->
+                                    <div id="cv-success-card" class="hidden p-4 bg-emerald-50/90 border border-emerald-300 rounded-xl">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <i class="fas fa-check-circle text-lg"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <h4 class="text-xs font-bold text-emerald-900" id="cv-success-title">Photo Verified Relevant & Authentic</h4>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span id="cv-rel-badge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Relevance: 85%</span>
+                                                        <span id="cv-ai-badge" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Authentic Camera Photo</span>
+                                                    </div>
+                                                </div>
+                                                <p id="cv-success-msg" class="text-xs text-emerald-700 mt-1">Image matches category and appears to be authentic photography.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. Result State: Clearly Unrelated Image (BLOCKED) -->
+                                    <div id="cv-unrelated-card" class="hidden p-4 bg-rose-50 border border-rose-300 rounded-xl">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <i class="fas fa-ban text-lg"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <h4 class="text-xs font-bold text-rose-900">Unrelated Photo Detected — Submission Blocked</h4>
+                                                    <span id="cv-unrel-badge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">Relevance: 12%</span>
+                                                </div>
+                                                <p id="cv-unrelated-msg" class="text-xs text-rose-700 mt-1"></p>
+                                                <p class="text-[11px] text-rose-600 mt-1 font-medium">Please upload a relevant photograph that clearly depicts the public infrastructure issue.</p>
+                                                <div class="mt-2.5 flex items-center gap-2">
+                                                    <button type="button" onclick="document.getElementById('image').click()"
+                                                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                                                        <i class="fas fa-camera"></i> Choose Different Photo
+                                                    </button>
+                                                    <button type="button" onclick="clearSelectedImage()"
+                                                        class="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-medium rounded-lg transition">
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. Result State: Suspected AI-Generated Image -->
+                                    <div id="cv-ai-flagged-card" class="hidden p-4 bg-amber-50 border border-amber-300 rounded-xl">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <i class="fas fa-robot text-lg"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <h4 class="text-xs font-bold text-amber-900">Potential AI-Generated Image Detected</h4>
+                                                    <span id="cv-ai-score-badge" class="px-2 py-0.5 rounded text-[11px] font-black bg-amber-200 text-amber-900 border border-amber-300">AI Score: 88%</span>
+                                                </div>
+                                                <p id="cv-ai-msg" class="text-xs text-amber-800 mt-1"></p>
+                                                <div class="mt-2 p-2.5 bg-amber-100/70 rounded-lg text-[11px] text-amber-900 leading-relaxed border border-amber-200">
+                                                    <i class="fas fa-info-circle mr-1 text-amber-600"></i>
+                                                    <strong>Important Note:</strong> Automated detectors evaluate statistical visual patterns and are not 100% conclusive proof. This complaint will be submitted with an automated flag for administrative inspection.
+                                                </div>
+                                                <div class="mt-2 flex items-center gap-2">
+                                                    <button type="button" onclick="document.getElementById('image').click()"
+                                                        class="px-3 py-1 bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold rounded-lg transition">
+                                                        Upload Original Camera Photo Instead
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5. Result State: Uncertain Relevance -->
+                                    <div id="cv-uncertain-card" class="hidden p-4 bg-yellow-50 border border-yellow-300 rounded-xl">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <i class="fas fa-question-circle text-lg"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <h4 class="text-xs font-bold text-yellow-900">Uncertain Photo Match — Manual Review Option</h4>
+                                                    <span id="cv-uncertain-score-badge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-yellow-200 text-yellow-900 border border-yellow-300">Score: 36%</span>
+                                                </div>
+                                                <p id="cv-uncertain-msg" class="text-xs text-yellow-800 mt-1"></p>
+                                                <p class="text-[11px] text-yellow-700 mt-1">You may choose a clearer or closer photograph, or proceed with manual verification by municipal staff.</p>
+                                                <div class="mt-2.5 flex items-center gap-2">
+                                                    <button type="button" onclick="document.getElementById('image').click()"
+                                                        class="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+                                                        Choose Clearer Photo
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 6. Result State: Service / Corrupted Error -->
+                                    <div id="cv-error-card" class="hidden p-4 bg-red-50 border border-red-300 rounded-xl">
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <i class="fas fa-exclamation-triangle text-lg"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <h4 class="text-xs font-bold text-red-900">Image Verification Error</h4>
+                                                <p id="cv-error-msg" class="text-xs text-red-700 mt-1"></p>
+                                                <div class="mt-2.5 flex items-center gap-2">
+                                                    <button type="button" onclick="retryValidation()"
+                                                        class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                                                        <i class="fas fa-redo-alt"></i> Retry Verification
+                                                    </button>
+                                                    <button type="button" onclick="clearSelectedImage()"
+                                                        class="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-medium rounded-lg transition">
+                                                        Choose Another File
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== 1.5 TAILORED DEPARTMENT-SPECIFIC FIELDS ========== -->
+                    <div id="dept-fields-section" class="border-t border-gray-100 pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
+                                    <i class="fas fa-sliders text-[10px]"></i>
+                                </span>
+                                Department-Specific Details
+                            </h3>
+                            <span id="dept-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                Tailored Form
+                            </span>
+                        </div>
+
+                        <!-- Placeholder when no department is picked yet -->
+                        <div id="dept-fields-placeholder" class="p-6 bg-gray-50 border border-dashed border-gray-300 rounded-xl text-center">
+                            <i class="fas fa-hand-pointer text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700">Please select a Department above</p>
+                            <p class="text-xs text-gray-400 mt-1">Specialized questions for that department will appear here automatically.</p>
+                        </div>
+
+                        <!-- 1. ROADS SPECIFIC FIELDS -->
+                        <div id="dept-fields-roads" class="dept-fields-block hidden bg-amber-50/40 border border-amber-200/80 rounded-2xl p-5 sm:p-6 space-y-4">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-amber-200/60">
+                                <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm">
+                                    <i class="fas fa-road"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-amber-900">Roads Department Details</h4>
+                                    <p class="text-xs text-amber-700">Details required for road inspection & asphalt crew</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Road Defect Type</label>
+                                    <select name="dept_roads_issue_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none">
+                                        <option value="Pothole / Road Surface Crater" selected>Pothole / Road Surface Crater</option>
+                                        <option value="Surface Erosion / Tar Peeling">Surface Erosion / Tar Peeling</option>
+                                        <option value="Road Sinking / Cave-in">Road Sinking / Cave-in</option>
+                                        <option value="Broken Footpath / Pedestrian Kerb">Broken Footpath / Pedestrian Kerb</option>
+                                        <option value="Damaged Divider / Median Barrier">Damaged Divider / Median Barrier</option>
+                                        <option value="Unauthorized / Broken Speed Breaker">Unauthorized / Broken Speed Breaker</option>
+                                        <option value="Road Shoulder / Berm Damage">Road Shoulder / Berm Damage</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pothole / Defect Approximate Size</label>
+                                    <select name="dept_roads_size" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none">
+                                        <option value="Small (< 1 foot / Surface defect)">Small (&lt; 1 foot / Surface defect)</option>
+                                        <option value="Medium (1 - 3 feet / Vehicle damage risk)" selected>Medium (1 - 3 feet / Vehicle damage risk)</option>
+                                        <option value="Large & Deep (> 3 feet / High accident danger)">Large &amp; Deep (&gt; 3 feet / High accident danger)</option>
+                                        <option value="Entire Stretch (Multiple continuous potholes)">Entire Stretch (Multiple continuous potholes)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Traffic Impact Level</label>
+                                    <select name="dept_roads_traffic_impact" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none">
+                                        <option value="Low (Vehicles passing with minor caution)">Low (Vehicles passing with minor caution)</option>
+                                        <option value="Moderate (Vehicles swerving / slowing down)" selected>Moderate (Vehicles swerving / slowing down)</option>
+                                        <option value="Severe (One lane blocked / High accident hazard)">Severe (One lane blocked / High accident hazard)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Estimated Road Length Affected (Optional)</label>
+                                    <input type="text" name="dept_roads_affected_length" placeholder="e.g. Approx 15 meters near the bridge"
+                                        class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. STREET LIGHTS SPECIFIC FIELDS -->
+                        <div id="dept-fields-streetlights" class="dept-fields-block hidden bg-yellow-50/40 border border-yellow-200/80 rounded-2xl p-5 sm:p-6 space-y-4">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-yellow-200/60">
+                                <div class="w-7 h-7 rounded-lg bg-yellow-100 text-yellow-700 flex items-center justify-center text-sm">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-yellow-900">Street Lights Department Details</h4>
+                                    <p class="text-xs text-yellow-700">Specific electrical information for the electrical maintenance unit</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Lighting Issue Type</label>
+                                    <select name="dept_lights_issue_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none">
+                                        <option value="Light Completely Off / Dead at Night" selected>Light Completely Off / Dead at Night</option>
+                                        <option value="Light Flickering / Blinking Intermittently">Light Flickering / Blinking Intermittently</option>
+                                        <option value="Light Kept ON in Daytime (Energy Wastage)">Light Kept ON in Daytime (Energy Wastage)</option>
+                                        <option value="Damaged / Broken Fixture or Glass">Damaged / Broken Fixture or Glass</option>
+                                        <option value="Leaning / Collapsed Light Pole">Leaning / Collapsed Light Pole</option>
+                                        <option value="Exposed / Dangling Electric Wires">Exposed / Dangling Electric Wires</option>
+                                        <option value="All Lights Dark in Street (Circuit Outage)">All Lights Dark in Street (Circuit Outage)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Pole Identification Tag / Number (If visible)</label>
+                                    <input type="text" name="dept_lights_pole_number" placeholder="e.g. SL-28 or Pole opposite ABC Store"
+                                        class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Number of Affected Lights</label>
+                                    <select name="dept_lights_count" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none">
+                                        <option value="1 Light" selected>1 Light</option>
+                                        <option value="2 to 4 Lights in a row">2 to 4 Lights in a row</option>
+                                        <option value="5+ Lights / Entire Street Dark">5+ Lights / Entire Street Dark</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Electrical Sparking or Live Wire Hazard?</label>
+                                    <select name="dept_lights_hazard" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none">
+                                        <option value="No Hazard (Standard outage)" selected>No Hazard (Standard outage)</option>
+                                        <option value="High Danger: Exposed live wire or sparking observed">High Danger: Exposed live wire or sparking observed</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. WATER SUPPLY SPECIFIC FIELDS -->
+                        <div id="dept-fields-watersupply" class="dept-fields-block hidden bg-blue-50/40 border border-blue-200/80 rounded-2xl p-5 sm:p-6 space-y-4">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-blue-200/60">
+                                <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm">
+                                    <i class="fas fa-faucet-drip"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-blue-900">Water Supply Department Details</h4>
+                                    <p class="text-xs text-blue-700">Information for pipe technicians and water distribution engineers</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Water Issue Category</label>
+                                    <select name="dept_water_issue_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                        <option value="Main Underground Pipeline Burst" selected>Main Underground Pipeline Burst</option>
+                                        <option value="Surface Pipe Leakage / Gushing Water">Surface Pipe Leakage / Gushing Water</option>
+                                        <option value="Complete Water Supply Cut / No Water">Complete Water Supply Cut / No Water</option>
+                                        <option value="Very Low Water Pressure">Very Low Water Pressure</option>
+                                        <option value="Contaminated / Muddy / Bad Odor Water">Contaminated / Muddy / Bad Odor Water</option>
+                                        <option value="Broken Public Standpost Tap / Valve">Broken Public Standpost Tap / Valve</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Leakage Severity / Outage Level</label>
+                                    <select name="dept_water_severity" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                        <option value="High (Heavy water gushing onto road / Total outage)" selected>High (Heavy water gushing onto road / Total outage)</option>
+                                        <option value="Moderate (Continuous stream / noticeable pressure drop)">Moderate (Continuous stream / noticeable pressure drop)</option>
+                                        <option value="Low (Slow dripping / minor puddle)">Low (Slow dripping / minor puddle)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Duration of Disruption</label>
+                                    <select name="dept_water_duration" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                        <option value="Started today" selected>Started today</option>
+                                        <option value="2 to 3 days">2 to 3 days</option>
+                                        <option value="More than a week">More than a week</option>
+                                        <option value="Recurring / Intermittent issue">Recurring / Intermittent issue</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Approx. Households / Premises Affected</label>
+                                    <select name="dept_water_affected_homes" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                        <option value="1 to 2 Houses">1 to 2 Houses</option>
+                                        <option value="Neighborhood Cluster (3 to 10 Houses)" selected>Neighborhood Cluster (3 to 10 Houses)</option>
+                                        <option value="Entire Street / Colony (10+ Houses)">Entire Street / Colony (10+ Houses)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. DRAINAGE SPECIFIC FIELDS -->
+                        <div id="dept-fields-drainage" class="dept-fields-block hidden bg-cyan-50/40 border border-cyan-200/80 rounded-2xl p-5 sm:p-6 space-y-4">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-cyan-200/60">
+                                <div class="w-7 h-7 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center text-sm">
+                                    <i class="fas fa-water"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-cyan-900">Drainage Department Details</h4>
+                                    <p class="text-xs text-cyan-700">Sanitation and stormwater drainage inspection parameters</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Drainage Problem Type</label>
+                                    <select name="dept_drainage_issue_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none">
+                                        <option value="Clogged / Choked Stormwater Drain" selected>Clogged / Choked Stormwater Drain</option>
+                                        <option value="Sewage Overflowing onto Street">Sewage Overflowing onto Street</option>
+                                        <option value="Missing / Open Manhole Cover (Immediate Fall Danger!)">Missing / Open Manhole Cover (Immediate Fall Danger!)</option>
+                                        <option value="Broken / Collapsed Concrete Drain Slab">Broken / Collapsed Concrete Drain Slab</option>
+                                        <option value="Severe Foul Odor / Stagnant Health Hazard">Severe Foul Odor / Stagnant Health Hazard</option>
+                                        <option value="Incomplete / Blocked Culvert Construction">Incomplete / Blocked Culvert Construction</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Waterlogging / Flood Level</label>
+                                    <select name="dept_drainage_flood_level" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none">
+                                        <option value="No Flooding (Slab/manhole or odor issue)">No Flooding (Slab/manhole or odor issue)</option>
+                                        <option value="Ankle-deep (Water covering walkway or road margin)" selected>Ankle-deep (Water covering walkway or road margin)</option>
+                                        <option value="Knee-deep or higher (Water entering compounds/shops)">Knee-deep or higher (Water entering compounds/shops)</option>
+                                    </select>
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Immediate Safety Hazard Alert</label>
+                                    <select name="dept_drainage_hazard" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none">
+                                        <option value="None" selected>None (Standard clearance needed)</option>
+                                        <option value="Urgent Hazard: Open manhole / collapsed slab with risk of pedestrian fall">Urgent Hazard: Open manhole / collapsed slab with risk of pedestrian fall</option>
+                                        <option value="Health Hazard: Sewage backflow entering homes or potable water area">Health Hazard: Sewage backflow entering homes or potable water area</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. WASTE MANAGEMENT SPECIFIC FIELDS -->
+                        <div id="dept-fields-wastemanagement" class="dept-fields-block hidden bg-emerald-50/40 border border-emerald-200/80 rounded-2xl p-5 sm:p-6 space-y-4">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-emerald-200/60">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm">
+                                    <i class="fas fa-trash-can"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-emerald-900">Waste Management Department Details</h4>
+                                    <p class="text-xs text-emerald-700">Information for sanitation trucks and waste collection squads</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Waste Issue Type</label>
+                                    <select name="dept_waste_issue_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                                        <option value="Overflowing Public Garbage Bin" selected>Overflowing Public Garbage Bin</option>
+                                        <option value="Illegal Roadside Garbage Dump">Illegal Roadside Garbage Dump</option>
+                                        <option value="Door-to-Door Waste Collection Missed">Door-to-Door Waste Collection Missed</option>
+                                        <option value="Dead Animal Carcass Requiring Urgent Removal">Dead Animal Carcass Requiring Urgent Removal</option>
+                                        <option value="Illegal Burning of Waste / Toxic Smoke">Illegal Burning of Waste / Toxic Smoke</option>
+                                        <option value="Construction & Demolition Debris Dumped">Construction &amp; Demolition Debris Dumped</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Waste Classification</label>
+                                    <select name="dept_waste_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                                        <option value="Household Organic / Kitchen Food Waste" selected>Household Organic / Kitchen Food Waste</option>
+                                        <option value="Dry Plastic & Packaging Waste">Dry Plastic &amp; Packaging Waste</option>
+                                        <option value="Mixed Solid Waste">Mixed Solid Waste</option>
+                                        <option value="Construction Rubble & Debris">Construction Rubble &amp; Debris</option>
+                                        <option value="Hazardous / Medical / Chemical Waste">Hazardous / Medical / Chemical Waste</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Estimated Waste Volume</label>
+                                    <select name="dept_waste_volume" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                                        <option value="Small Heap (1 to 2 sacks / bins)">Small Heap (1 to 2 sacks / bins)</option>
+                                        <option value="Moderate Pile (Pushcart / Small auto load)" selected>Moderate Pile (Pushcart / Small auto load)</option>
+                                        <option value="Massive Dump (Requires tipper truck / JCB loader)">Massive Dump (Requires tipper truck / JCB loader)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Obstruction Status</label>
+                                    <select name="dept_waste_blocking" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                                        <option value="No, not blocking traffic or drain" selected>No, not blocking traffic or drain</option>
+                                        <option value="Yes, spilling onto road or blocking drainage channel">Yes, spilling onto road or blocking drainage channel</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. PARKS SPECIFIC FIELDS -->
+                        <div id="dept-fields-parks" class="dept-fields-block hidden bg-green-50/40 border border-green-200/80 rounded-2xl p-5 sm:p-6 space-y-4">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-green-200/60">
+                                <div class="w-7 h-7 rounded-lg bg-green-100 text-green-700 flex items-center justify-center text-sm">
+                                    <i class="fas fa-tree"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-green-900">Parks & Recreation Details</h4>
+                                    <p class="text-xs text-green-700">Safety and asset maintenance parameters for public parks</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Park Issue Type</label>
+                                    <select name="dept_parks_issue_type" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                        <option value="Broken Children's Play Equipment (Swing/Slide/See-saw)" selected>Broken Children's Play Equipment (Swing/Slide/See-saw)</option>
+                                        <option value="Damaged / Broken Park Bench">Damaged / Broken Park Bench</option>
+                                        <option value="Damaged Boundary Wall / Fence / Security Gate">Damaged Boundary Wall / Fence / Security Gate</option>
+                                        <option value="Overgrown Wild Grass / Fallen Tree Branch">Overgrown Wild Grass / Fallen Tree Branch</option>
+                                        <option value="Non-functional Park Lights / Defective Water Tap">Non-functional Park Lights / Defective Water Tap</option>
+                                        <option value="Broken Glass / Hazardous Litter in Play Area">Broken Glass / Hazardous Litter in Play Area</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Park Section / Area (Optional)</label>
+                                    <input type="text" name="dept_parks_area" placeholder="e.g. Children's play zone, Walking track, East gate"
+                                        class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Child / Visitor Safety Risk</label>
+                                    <select name="dept_parks_hazard" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                        <option value="High (Immediate injury hazard to playing children / visitors)" selected>High (Immediate injury hazard to playing children / visitors)</option>
+                                        <option value="Moderate (Equipment unusable, isolated or aesthetic concern)">Moderate (Equipment unusable, isolated or aesthetic concern)</option>
+                                        <option value="Low (General park upkeep / routine trimming)">Low (General park upkeep / routine trimming)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== 2. LOCATION DETAILS (PRIMARY) ========== -->
+                    <div class="border-t border-gray-100 pt-8">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">2</span>
+                                Location Details (Primary)
+                            </h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                Primary Address
+                            </span>
+                        </div>
+
+                        <!-- 1-Click Current Location Mechanism -->
+                        <div class="p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200 rounded-2xl mb-6 shadow-sm">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-start sm:items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow">
+                                        <i class="fas fa-location-crosshairs text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="text-sm font-bold text-gray-900">Auto-Detect Current Location</h4>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">1-Click Insert</span>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mt-0.5">
+                                            Automatically fills Road Name, Area, Landmark, and GPS coordinates without searching or dragging pins on a map.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="detectAndFillCurrentLocation()" id="detectCurrentLocBtn"
+                                    class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer">
+                                    <i class="fas fa-crosshairs text-sm"></i>
+                                    <span id="detectCurrentLocBtnText">Use My Current Location</span>
+                                </button>
+                            </div>
+
+                            <!-- Live Feedback Notification Banner -->
+                            <div id="loc-feedback-banner" class="hidden mt-3 pt-3 border-t border-blue-200/60 text-xs flex items-center gap-2">
+                                <i id="loc-feedback-icon" class="fas fa-check-circle text-green-600 text-sm"></i>
+                                <span id="loc-feedback-text" class="text-gray-700 font-medium"></span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5">
+                            <!-- Road + Landmark same row -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Road / Street Name</label>
+                                    <input type="text" name="road_name" id="road_name" placeholder="Example: Peruva - Piravom Road"
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Nearby Landmark</label>
+                                    <input type="text" name="landmark" id="landmark" placeholder="Example: Near Peruva Junction / Bus Stop"
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Area / Location *</label>
+                                <div class="relative">
+                                    <input type="text" name="location" id="location" placeholder="Search an area, junction, road or place..." required
+                                        class="w-full px-4 py-2.5 pr-12 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                    <button type="button" onclick="searchLocation()"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center transition">
+                                        <i class="fas fa-search text-sm"></i>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Search the town or locality. The map below will zoom to this region.</p>
+                                <div id="searchResults" class="hidden mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== 3. GPS LOCATION & MAP PINPOINT (SECONDARY OPTION) ========== -->
+                    <div class="border-t border-gray-100 pt-8">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-gray-400 text-white text-xs flex items-center justify-center">3</span>
+                                GPS Location & Interactive Map Pinpoint
+                            </h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                                Secondary Option (Optional)
+                            </span>
+                        </div>
+
+                        <!-- Explanatory Banner -->
+                        <div class="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4 text-sm text-slate-700">
+                            <i class="fas fa-map-location-dot text-blue-600 text-lg mt-0.5 flex-shrink-0"></i>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Pinpoint coordinates with Device GPS or Map</p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    Your address details above are sufficient to submit. As an optional secondary option, you can click <strong>"Use Device GPS"</strong> or tap on the map to pinpoint exact coordinates for the field crew.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Map Container -->
+                        <div id="map" class="w-full h-80 rounded-xl border border-gray-200 overflow-hidden shadow-sm"></div>
+
+                        <!-- GPS Controls and Status Bar -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                            <div class="flex items-center gap-2">
+                                <span id="gps-status-badge" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-200 text-gray-600">
+                                    <i class="fas fa-location-crosshairs mr-1"></i> GPS: Not set (optional)
+                                </span>
+                                <span id="coordinates-text" class="text-xs text-gray-500 font-mono hidden"></span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="useCurrentLocation()"
+                                    class="px-3.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition flex items-center gap-1.5">
+                                    <i class="fas fa-crosshairs text-blue-600"></i> Use Device GPS
+                                </button>
+                                <button type="button" id="clearGpsBtn" onclick="clearLocation()"
+                                    class="hidden px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition flex items-center gap-1">
+                                    <i class="fas fa-times"></i> Clear GPS
+                                </button>
+                            </div>
+                        </div>
+
+                        <p id="location-message" class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-hand-pointer text-blue-500 mr-1"></i>
+                            Tap on the map or drag the marker to pinpoint the exact location.
+                        </p>
+
+                        <!-- Hidden GPS Coordinate Inputs -->
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-4 border-t border-gray-100">
+                        <button type="submit" id="submitComplaintBtn"
+                            class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition shadow-md text-base flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Submit Complaint</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+{% if success %}
+<div id="successModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-200">
+            {% if similar_complaint_id %}
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Similar Complaint Found</h3>
+                    <p class="text-sm text-gray-500">We found a potentially similar complaint.</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check text-green-600 text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Complaint Submitted Successfully</h3>
+                    <p class="text-sm text-gray-500">Your complaint has been registered.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="px-6 py-5">
+            {% if similar_complaint_id %}
+            <p class="text-gray-700 text-sm leading-relaxed">
+                A potentially similar complaint
+                <strong>#{{ similar_complaint_id }}</strong>
+                was detected.
+            </p>
+            <!-- TF-IDF Similarity -->
+            <div class="mt-4 bg-blue-50 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">TF-IDF Text Similarity</span>
+                    <span class="text-lg font-bold text-blue-600">{{ "%.2f"|format(text_similarity or 0) }}%</span>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">
+                    Similarity calculated using TF-IDF and Cosine Similarity.
+                </div>
+            </div>
+            <p class="text-gray-600 text-sm mt-3">Your complaint has also been successfully registered.</p>
+            {% else %}
+            <p class="text-gray-700 text-sm leading-relaxed">Your complaint has been submitted successfully.</p>
+            {% endif %}
+            <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                <p class="text-xs text-gray-500">Your Complaint ID</p>
+                <p class="text-lg font-bold text-blue-600 mt-1">#{{ complaint_id }}</p>
+            </div>
+
+            {% if validation_result and validation_result.relevance %}
+            <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5">
+                <div class="flex items-center justify-between font-semibold text-gray-700">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fas fa-camera text-blue-600"></i> Evidence Verified
+                    </span>
+                    <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-green-100 text-green-700">Passed</span>
+                </div>
+                <div class="flex items-center justify-between text-gray-600">
+                    <span>Category Match:</span>
+                    <span class="font-medium text-gray-800">{{ validation_result.relevance.target_category }} ({{ validation_result.relevance.score }}%)</span>
+                </div>
+                <div class="flex items-center justify-between text-gray-600">
+                    <span>Photo Authenticity:</span>
+                    {% if validation_result.ai_detection and validation_result.ai_detection.is_ai_suspected %}
+                    <span class="font-bold text-amber-600">Flagged for AI Review</span>
+                    {% else %}
+                    <span class="font-medium text-emerald-600">Authentic Camera Photo</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="px-6 py-4 bg-gray-50 flex justify-end">
+            <button type="button" onclick="closeSuccessModal()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition">
+                OK
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+function closeSuccessModal() {
+    const modal = document.getElementById("successModal");
+    if (modal) modal.remove();
+    window.location.href = "{{ return_url }}";
+}
+</script>
+{% endif %}
+
+<script>
+    // -------------------------------------------------------------
+    // Sidebar Toggle
+    // -------------------------------------------------------------
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+        if (!sidebar) return;
+
+        const isDesktop = window.innerWidth >= 1024;
+
+        if (isDesktop) {
+            // Desktop collapse / expand
+            const isHidden = sidebar.classList.contains('sidebar-hidden') || sidebar.style.transform === 'translateX(-100%)';
+
+            if (isHidden) {
+                // Reclicked -> Display sidebar again
+                sidebar.classList.remove('sidebar-hidden');
+                sidebar.style.removeProperty('transform');
+                if (mainContent) {
+                    mainContent.classList.remove('content-expanded');
+                    mainContent.style.removeProperty('margin-left');
+                }
+            } else {
+                // Clicked -> Hide sidebar
+                sidebar.classList.add('sidebar-hidden');
+                sidebar.style.transform = 'translateX(-100%)';
+                if (mainContent) {
+                    mainContent.classList.add('content-expanded');
+                    mainContent.style.marginLeft = '0px';
+                }
+            }
+        } else {
+            // Mobile drawer toggle
+            const isMobileOpen = sidebar.classList.contains('sidebar-mobile-show') || sidebar.style.transform === 'translateX(0px)';
+
+            if (isMobileOpen) {
+                // Reclicked -> Hide sidebar
+                sidebar.classList.remove('sidebar-mobile-show');
+                sidebar.style.transform = 'translateX(-100%)';
+                if (overlay) overlay.classList.add('hidden');
+            } else {
+                // Clicked -> Display sidebar
+                sidebar.classList.add('sidebar-mobile-show');
+                sidebar.style.transform = 'translateX(0px)';
+                if (overlay) overlay.classList.remove('hidden');
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // Department Selection & Dynamic Form Switching
+    // -------------------------------------------------------------
+    const departmentBlocks = {
+        'Roads': 'dept-fields-roads',
+        'Street Lights': 'dept-fields-streetlights',
+        'Water Supply': 'dept-fields-watersupply',
+        'Drainage': 'dept-fields-drainage',
+        'Waste Management': 'dept-fields-wastemanagement',
+        'Parks': 'dept-fields-parks'
+    };
+
+    const departmentPillIds = {
+        'Roads': 'pill-Roads',
+        'Street Lights': 'pill-StreetLights',
+        'Water Supply': 'pill-WaterSupply',
+        'Drainage': 'pill-Drainage',
+        'Waste Management': 'pill-WasteManagement',
+        'Parks': 'pill-Parks'
+    };
+
+    function selectDepartment(deptName) {
+        const categorySelect = document.getElementById('category');
+        if (categorySelect) {
+            categorySelect.value = deptName;
+            onCategoryChange(deptName);
+        }
+    }
+
+    function onCategoryChange(selectedCategory) {
+        // Update Pills
+        Object.keys(departmentPillIds).forEach(dept => {
+            const pill = document.getElementById(departmentPillIds[dept]);
+            if (pill) {
+                if (dept.toLowerCase() === (selectedCategory || '').toLowerCase()) {
+                    pill.classList.add('dept-card-active');
+                } else {
+                    pill.classList.remove('dept-card-active');
+                }
+            }
+        });
+
+        // Hide placeholder
+        const placeholder = document.getElementById('dept-fields-placeholder');
+        const badge = document.getElementById('dept-badge');
+
+        // Hide all department specific blocks
+        document.querySelectorAll('.dept-fields-block').forEach(block => {
+            block.classList.add('hidden');
+        });
+
+        // Find matching block
+        let matched = false;
+        for (const [dept, blockId] of Object.entries(departmentBlocks)) {
+            if (dept.toLowerCase() === (selectedCategory || '').toLowerCase()) {
+                const targetBlock = document.getElementById(blockId);
+                if (targetBlock) {
+                    targetBlock.classList.remove('hidden');
+                    matched = true;
+                }
+                if (badge) {
+                    badge.textContent = dept + ' Tailored Details';
+                }
+                break;
+            }
+        }
+
+        if (placeholder) {
+            if (matched) {
+                placeholder.classList.add('hidden');
+            } else {
+                placeholder.classList.remove('hidden');
+                if (badge) badge.textContent = 'Tailored Form';
+            }
+        }
+
+        // If an image is already selected, re-validate against the newly chosen department
+        if (window.imageValidationState && window.imageValidationState.hasFile) {
+            triggerImageValidation();
+        }
+    }
+
+    // -------------------------------------------------------------
+    // Image Upload, Live Preview & Computer Vision AI Validation
+    // -------------------------------------------------------------
+    window.imageValidationState = {
+        inProgress: false,
+        lastResult: null,
+        canSubmit: false,
+        hasFile: false,
+        abortController: null
+    };
+
+    function handleImagePreview(input) {
+        const file = input.files ? input.files[0] : null;
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImg = document.getElementById('image-preview');
+        const filenameLabel = document.getElementById('preview-filename');
+        const filesizeLabel = document.getElementById('preview-filesize');
+        const dropzoneLabel = document.getElementById('file-name');
+
+        if (file) {
+            // Check size (Max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size exceeds 5MB limit. Please choose a smaller image.');
+                clearSelectedImage();
+                return;
+            }
+
+            window.imageValidationState.hasFile = true;
+            window.imageValidationState.canSubmit = false;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                filenameLabel.textContent = file.name;
+                filesizeLabel.textContent = '(' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)';
+                previewContainer.classList.remove('hidden');
+                dropzoneLabel.textContent = file.name;
+
+                // Launch Computer Vision Validation
+                triggerImageValidation(file);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            clearSelectedImage();
+        }
+    }
+
+    function clearSelectedImage() {
+        const input = document.getElementById('image');
+        if (input) input.value = '';
+        const previewContainer = document.getElementById('image-preview-container');
+        if (previewContainer) previewContainer.classList.add('hidden');
+        const dropzoneLabel = document.getElementById('file-name');
+        if (dropzoneLabel) dropzoneLabel.textContent = 'Click to upload photo of the problem';
+
+        const valBox = document.getElementById('image-cv-validation-box');
+        if (valBox) valBox.classList.add('hidden');
+
+        if (window.imageValidationState.abortController) {
+            window.imageValidationState.abortController.abort();
+        }
+        window.imageValidationState.inProgress = false;
+        window.imageValidationState.lastResult = null;
+        window.imageValidationState.canSubmit = false;
+        window.imageValidationState.hasFile = false;
+        updateSubmitButtonState();
+    }
+
+    function hideAllCvCards() {
+        ['cv-progress-card', 'cv-success-card', 'cv-unrelated-card', 'cv-ai-flagged-card', 'cv-uncertain-card', 'cv-error-card'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+    }
+
+    async function triggerImageValidation(file) {
+        const fileInput = document.getElementById('image');
+        const targetFile = file || (fileInput && fileInput.files ? fileInput.files[0] : null);
+        if (!targetFile) return;
+
+        const categoryVal = document.getElementById('category') ? document.getElementById('category').value : '';
+        const titleVal = document.getElementById('title') ? document.getElementById('title').value : '';
+        const descVal = document.getElementById('description') ? document.getElementById('description').value : '';
+
+        const valBox = document.getElementById('image-cv-validation-box');
+        if (valBox) valBox.classList.remove('hidden');
+
+        hideAllCvCards();
+        const progressCard = document.getElementById('cv-progress-card');
+        if (progressCard) progressCard.classList.remove('hidden');
+
+        const stepLabel = document.getElementById('cv-step-label');
+        const progressBar = document.getElementById('cv-progress-bar');
+
+        if (stepLabel) stepLabel.textContent = "Analyzing with CLIP Vision...";
+        if (progressBar) progressBar.style.width = "45%";
+
+        if (window.imageValidationState.abortController) {
+            window.imageValidationState.abortController.abort();
+        }
+        window.imageValidationState.abortController = new AbortController();
+        window.imageValidationState.inProgress = true;
+        updateSubmitButtonState();
+
+        const formData = new FormData();
+        formData.append('image', targetFile);
+        formData.append('category', categoryVal || 'Roads');
+        formData.append('title', titleVal || 'Complaint photo');
+        formData.append('description', descVal || '');
+
+        try {
+            setTimeout(() => {
+                if (window.imageValidationState.inProgress && stepLabel) {
+                    stepLabel.textContent = "Scanning for AI patterns...";
+                    if (progressBar) progressBar.style.width = "80%";
+                }
+            }, 800);
+
+            const response = await fetch('/api/validate-complaint-image', {
+                method: 'POST',
+                body: formData,
+                signal: window.imageValidationState.abortController.signal
+            });
+
+            const data = await response.json();
+            window.imageValidationState.inProgress = false;
+            window.imageValidationState.lastResult = data;
+
+            hideAllCvCards();
+
+            if (!data.success || data.decision === 'error') {
+                window.imageValidationState.canSubmit = false;
+                const errCard = document.getElementById('cv-error-card');
+                const errMsg = document.getElementById('cv-error-msg');
+                if (errMsg) errMsg.textContent = data.error || "Image verification encountered a temporary issue. Mandatory validation cannot be bypassed.";
+                if (errCard) errCard.classList.remove('hidden');
+            } else if (data.decision === 'allow') {
+                window.imageValidationState.canSubmit = true;
+                const succCard = document.getElementById('cv-success-card');
+                const relBadge = document.getElementById('cv-rel-badge');
+                const aiBadge = document.getElementById('cv-ai-badge');
+                const succMsg = document.getElementById('cv-success-msg');
+
+                if (relBadge) relBadge.textContent = `Match: ${data.relevance.score}% (${data.relevance.target_category})`;
+                if (aiBadge) aiBadge.textContent = `Authentic Photo (${(100 - data.ai_detection.ai_score).toFixed(1)}%)`;
+                if (succMsg) succMsg.textContent = data.relevance.message || "Photo verified as relevant evidence.";
+                if (succCard) succCard.classList.remove('hidden');
+            } else if (data.decision === 'block_unrelated') {
+                window.imageValidationState.canSubmit = false;
+                const unrelCard = document.getElementById('cv-unrelated-card');
+                const unrelBadge = document.getElementById('cv-unrel-badge');
+                const unrelMsg = document.getElementById('cv-unrelated-msg');
+
+                if (unrelBadge) unrelBadge.textContent = `Match: ${data.relevance.score}%`;
+                if (unrelMsg) unrelMsg.textContent = data.relevance.message || "The uploaded photograph does not match the selected complaint category.";
+                if (unrelCard) unrelCard.classList.remove('hidden');
+            } else if (data.decision === 'flag_ai') {
+                window.imageValidationState.canSubmit = true;
+                const aiCard = document.getElementById('cv-ai-flagged-card');
+                const aiScoreBadge = document.getElementById('cv-ai-score-badge');
+                const aiMsg = document.getElementById('cv-ai-msg');
+
+                if (aiScoreBadge) aiScoreBadge.textContent = `AI Confidence: ${data.ai_detection.ai_score}%`;
+                if (aiMsg) aiMsg.textContent = data.ai_detection.message || "Potential AI-generated patterns detected in image.";
+                if (aiCard) aiCard.classList.remove('hidden');
+            } else if (data.decision === 'block_ai') {
+                window.imageValidationState.canSubmit = false;
+                const aiCard = document.getElementById('cv-ai-flagged-card');
+                const aiScoreBadge = document.getElementById('cv-ai-score-badge');
+                const aiMsg = document.getElementById('cv-ai-msg');
+
+                if (aiScoreBadge) aiScoreBadge.textContent = `AI Confidence: ${data.ai_detection.ai_score}% (Rejected)`;
+                if (aiMsg) aiMsg.textContent = "Submission blocked by municipal policy: Image detected as suspected AI-generated. Please upload an authentic photo.";
+                if (aiCard) aiCard.classList.remove('hidden');
+            } else if (data.decision === 'uncertain') {
+                window.imageValidationState.canSubmit = true;
+                const uncCard = document.getElementById('cv-uncertain-card');
+                const uncBadge = document.getElementById('cv-uncertain-score-badge');
+                const uncMsg = document.getElementById('cv-uncertain-msg');
+
+                if (uncBadge) uncBadge.textContent = `Confidence: ${data.relevance.score}%`;
+                if (uncMsg) uncMsg.textContent = data.relevance.message || "Photo relevance could not be definitively confirmed.";
+                if (uncCard) uncCard.classList.remove('hidden');
+            }
+
+            updateSubmitButtonState();
+
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+            console.error("Image validation fetch error:", err);
+            window.imageValidationState.inProgress = false;
+            window.imageValidationState.canSubmit = false;
+            hideAllCvCards();
+            const errCard = document.getElementById('cv-error-card');
+            const errMsg = document.getElementById('cv-error-msg');
+            if (errMsg) errMsg.textContent = "Unable to reach validation service. Mandatory validation cannot be bypassed.";
+            if (errCard) errCard.classList.remove('hidden');
+            updateSubmitButtonState();
+        }
+    }
+
+    function retryValidation() {
+        const fileInput = document.getElementById('image');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            triggerImageValidation(fileInput.files[0]);
+        }
+    }
+
+    function updateSubmitButtonState() {
+        const submitBtn = document.getElementById('submitComplaintBtn');
+        if (!submitBtn) return;
+
+        if (window.imageValidationState.inProgress) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Verifying photo with Computer Vision AI...</span>';
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i><span>Submit Complaint</span>';
+        }
+    }
+
+    function handleFormSubmit(event) {
+        if (window.imageValidationState.inProgress) {
+            event.preventDefault();
+            alert("Please wait a moment while the photo verification completes.");
+            return false;
+        }
+
+        const fileInput = document.getElementById('image');
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            event.preventDefault();
+            alert("A photograph of the issue is strictly required. Please upload a clear photo.");
+            const dropzone = document.getElementById('image-dropzone');
+            if (dropzone) dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        if (window.imageValidationState.lastResult && !window.imageValidationState.canSubmit) {
+            const dec = window.imageValidationState.lastResult.decision;
+            if (dec === 'block_unrelated') {
+                event.preventDefault();
+                const msg = window.imageValidationState.lastResult.relevance ? window.imageValidationState.lastResult.relevance.message : "The photo does not match the selected department.";
+                alert("Cannot submit complaint: " + msg + " Please upload a relevant photo of the problem.");
+                const box = document.getElementById('image-cv-validation-box');
+                if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            } else if (dec === 'block_ai') {
+                event.preventDefault();
+                alert("Cannot submit complaint: The uploaded photo was detected as suspected AI-generated. Municipal policy requires authentic camera-captured photographs.");
+                const box = document.getElementById('image-cv-validation-box');
+                if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // -------------------------------------------------------------
+    // Leaflet Interactive Map & GPS (Secondary Option)
+    // -------------------------------------------------------------
+    const defaultLatitude = 9.5916;
+    const defaultLongitude = 76.5222;
+    let selectedMarker = null;
+
+    const map = L.map('map').setView([defaultLatitude, defaultLongitude], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    function setSelectedLocation(latitude, longitude) {
+        if (selectedMarker) map.removeLayer(selectedMarker);
+        selectedMarker = L.marker([latitude, longitude], { draggable: true }).addTo(map);
+        selectedMarker.bindPopup("<b>Problem Location</b><br>Drag marker to adjust pin.").openPopup();
+
+        document.getElementById('latitude').value = latitude.toFixed(7);
+        document.getElementById('longitude').value = longitude.toFixed(7);
+
+        const badge = document.getElementById('gps-status-badge');
+        badge.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1";
+        badge.innerHTML = '<i class="fas fa-check-circle"></i> GPS Pinned';
+
+        const coordsText = document.getElementById('coordinates-text');
+        coordsText.textContent = `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`;
+        coordsText.classList.remove('hidden');
+
+        document.getElementById('clearGpsBtn').classList.remove('hidden');
+
+        const message = document.getElementById('location-message');
+        message.textContent = "Coordinates set. You can drag the marker on the map to adjust precisely.";
+        message.className = "text-xs text-blue-600 mt-2 font-medium";
+
+        map.setView([latitude, longitude], 17);
+
+        selectedMarker.on('dragend', function(event) {
+            const position = event.target.getLatLng();
+            document.getElementById('latitude').value = position.lat.toFixed(7);
+            document.getElementById('longitude').value = position.lng.toFixed(7);
+            coordsText.textContent = `Lat: ${position.lat.toFixed(6)}, Lng: ${position.lng.toFixed(6)}`;
+            message.textContent = "Marker updated: coordinates recorded.";
+        });
+    }
+
+    function clearLocation() {
+        if (selectedMarker) {
+            map.removeLayer(selectedMarker);
+            selectedMarker = null;
+        }
+        document.getElementById('latitude').value = '';
+        document.getElementById('longitude').value = '';
+
+        const badge = document.getElementById('gps-status-badge');
+        badge.className = "px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-200 text-gray-600";
+        badge.innerHTML = '<i class="fas fa-location-crosshairs mr-1"></i> GPS: Not set (optional)';
+
+        document.getElementById('coordinates-text').classList.add('hidden');
+        document.getElementById('clearGpsBtn').classList.add('hidden');
+
+        const message = document.getElementById('location-message');
+        message.textContent = "GPS cleared. You may pinpoint on the map anytime, or leave it blank.";
+        message.className = "text-xs text-gray-500 mt-2";
+    }
+
+    map.on('click', function(event) {
+        setSelectedLocation(event.latlng.lat, event.latlng.lng);
+    });
+
+    async function searchLocation() {
+        const locationInput = document.getElementById('location');
+        const query = locationInput.value.trim();
+        const resultsBox = document.getElementById('searchResults');
+        const message = document.getElementById('location-message');
+
+        if (!query) {
+            message.textContent = "Please enter an area, road, or place to search.";
+            message.className = "text-xs text-red-600 mt-2";
+            return;
+        }
+
+        message.textContent = "Searching for location...";
+        message.className = "text-xs text-blue-600 mt-2";
+        resultsBox.innerHTML = "";
+        resultsBox.classList.add('hidden');
+
+        try {
+            const response = await fetch("https://nominatim.openstreetmap.org/search?" + new URLSearchParams({
+                q: query + ", Kerala, India",
+                format: "json",
+                limit: 5
+            }));
+            const results = await response.json();
+
+            if (!results.length) {
+                message.textContent = "Location not found in map directory. Try a nearby town or landmark.";
+                message.className = "text-xs text-amber-600 mt-2";
+                return;
+            }
+
+            resultsBox.classList.remove('hidden');
+            results.forEach(result => {
+                const item = document.createElement('button');
+                item.type = "button";
+                item.className = "block w-full text-left px-4 py-2.5 text-xs hover:bg-blue-50 border-b border-gray-100 transition";
+                item.textContent = result.display_name;
+                item.onclick = function() {
+                    locationInput.value = result.display_name;
+                    setSelectedLocation(parseFloat(result.lat), parseFloat(result.lon));
+                    resultsBox.classList.add('hidden');
+                    message.textContent = "Location found on map. Coordinates recorded.";
+                    message.className = "text-xs text-green-600 mt-2";
+                };
+                resultsBox.appendChild(item);
+            });
+        } catch (error) {
+            console.error(error);
+            message.textContent = "Unable to complete map search right now.";
+            message.className = "text-xs text-red-600 mt-2";
+        }
+    }
+
+    // -------------------------------------------------------------
+    // Current Location Auto-Fill Mechanism (1-Click Insertion)
+    // -------------------------------------------------------------
+    async function reverseGeocodeAndFill(lat, lng) {
+        const banner = document.getElementById('loc-feedback-banner');
+        const icon = document.getElementById('loc-feedback-icon');
+        const text = document.getElementById('loc-feedback-text');
+
+        if (banner) banner.classList.remove('hidden');
+        if (icon) icon.className = 'fas fa-spinner fa-spin text-blue-600 text-sm';
+        if (text) {
+            text.className = 'text-blue-700 font-medium';
+            text.textContent = 'GPS locked! Finding street and area details...';
+        }
+
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+            const data = await response.json();
+
+            if (data && data.address) {
+                const addr = data.address;
+
+                // 1. Road Name
+                const road = addr.road || addr.pedestrian || addr.street || addr.highway || addr.path || '';
+                if (road) {
+                    const roadInput = document.getElementById('road_name');
+                    if (roadInput) roadInput.value = road;
+                }
+
+                // 2. Nearby Landmark / Suburb
+                const landmark = addr.quarter || addr.neighbourhood || addr.suburb || addr.amenity || addr.commercial || '';
+                if (landmark) {
+                    const landmarkInput = document.getElementById('landmark');
+                    if (landmarkInput) landmarkInput.value = landmark;
+                }
+
+                // 3. Area / Location
+                const areaCity = addr.suburb || addr.city || addr.town || addr.village || addr.county || '';
+                const districtState = addr.state_district || addr.state || 'Kerala';
+                if (areaCity) {
+                    const locationInput = document.getElementById('location');
+                    if (locationInput) locationInput.value = areaCity + (districtState ? ', ' + districtState : '');
+                }
+
+                if (icon) icon.className = 'fas fa-check-circle text-green-600 text-sm';
+                if (text) {
+                    text.className = 'text-green-700 font-semibold';
+                    text.textContent = `✅ Current location inserted: ${road || 'Street detected'}, ${areaCity || 'Area detected'}`;
+                }
+            } else {
+                if (icon) icon.className = 'fas fa-check-circle text-green-600 text-sm';
+                if (text) {
+                    text.className = 'text-green-700 font-semibold';
+                    text.textContent = '✅ GPS coordinates recorded and pinned on map.';
+                }
+            }
+        } catch (err) {
+            console.error("Reverse geocoding error:", err);
+            if (icon) icon.className = 'fas fa-check-circle text-blue-600 text-sm';
+            if (text) {
+                text.className = 'text-blue-700 font-medium';
+                text.textContent = '✅ GPS coordinates set. Please confirm street details.';
+            }
+        }
+    }
+
+    function detectAndFillCurrentLocation() {
+        const btn = document.getElementById('detectCurrentLocBtn');
+        const btnText = document.getElementById('detectCurrentLocBtnText');
+        const message = document.getElementById('location-message');
+
+        if (!navigator.geolocation) {
+            alert("Your browser does not support GPS geolocation.");
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        if (btnText) btnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Detecting GPS...';
+        if (message) {
+            message.textContent = "Detecting device GPS position...";
+            message.className = "text-xs text-blue-600 mt-2 font-medium";
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // Set map & coordinates (Secondary option)
+                setSelectedLocation(lat, lng);
+
+                // Auto-fill address fields via reverse geocoding
+                await reverseGeocodeAndFill(lat, lng);
+
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                }
+                if (btnText) btnText.innerHTML = '<i class="fas fa-check-circle mr-1 text-green-300"></i> Location Detected';
+                if (message) {
+                    message.textContent = "Current location detected and auto-filled. Pin placed on map as secondary option.";
+                    message.className = "text-xs text-green-600 mt-2 font-medium";
+                }
+            },
+            function(error) {
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.innerHTML = '<i class="fas fa-crosshairs mr-1"></i> Use My Current Location';
+                let errText = "Unable to retrieve device GPS.";
+                if (error.code === 1) errText = "GPS permission was denied. Please allow location access in your browser or enter your street name manually.";
+                else if (error.code === 2) errText = "GPS position is unavailable. Please type your street name manually.";
+                else if (error.code === 3) errText = "GPS request timed out. Please try again or type manually.";
+
+                const banner = document.getElementById('loc-feedback-banner');
+                const icon = document.getElementById('loc-feedback-icon');
+                const text = document.getElementById('loc-feedback-text');
+                if (banner) banner.classList.remove('hidden');
+                if (icon) icon.className = 'fas fa-exclamation-triangle text-amber-600 text-sm';
+                if (text) {
+                    text.className = 'text-amber-800 font-medium';
+                    text.textContent = errText;
+                }
+                if (message) {
+                    message.textContent = errText;
+                    message.className = "text-xs text-red-600 mt-2";
+                }
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+    }
+
+    // Secondary Map GPS button triggers the same auto-fill mechanism
+    function useCurrentLocation() {
+        detectAndFillCurrentLocation();
+    }
+
+    // -------------------------------------------------------------
+    // Auto-select department if pre-set or passed via URL (?dept=...)
+    // -------------------------------------------------------------
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const deptParam = urlParams.get('dept') || urlParams.get('category') || "{{ selected_dept or '' }}";
+
+        if (deptParam) {
+            selectDepartment(deptParam);
+        } else {
+            const currentVal = document.getElementById('category').value;
+            if (currentVal) {
+                onCategoryChange(currentVal);
+            }
+        }
+
+        // Handle pre-passed GPS coordinates from dashboard
+        const latParam = urlParams.get('lat') || "{{ initial_lat or '' }}";
+        const lngParam = urlParams.get('lng') || "{{ initial_lng or '' }}";
+        const autoGps = urlParams.get('auto_gps') || "{{ auto_gps or '' }}";
+
+        if (latParam && lngParam) {
+            const lat = parseFloat(latParam);
+            const lng = parseFloat(lngParam);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                setSelectedLocation(lat, lng);
+                reverseGeocodeAndFill(lat, lng);
+            }
+        } else if (autoGps === '1') {
+            detectAndFillCurrentLocation();
+        }
+
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+    });
+</script>
+<script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+</body>
+</html>
